@@ -1,0 +1,27 @@
+# ============================================================
+# Dependências do Mnemo — organizadas pela ordem do plano de execução.
+# ============================================================
+
+# --- Etapa 1: esqueleto FastAPI + servidor ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20      # upload de arquivo via HTTP (Etapa 3)
+
+# --- Etapa 4: persistência no Postgres ---
+SQLAlchemy==2.0.43
+psycopg[binary]==3.2.13       # driver Postgres
+pydantic-settings==2.7.0      # ler config a partir de variáveis de ambiente
+
+# --- Etapa 6: telas renderizadas no servidor ---
+jinja2==3.1.5
+
+# --- Etapa 2/3: transcrição com Whisper ---
+# ATENÇÃO: puxa o torch junto (~2 GB) e exige ffmpeg no sistema (ver Dockerfile).
+openai-whisper==20240930
+
+# --- Etapa 5: geração de flashcards com IA (Anthropic / Claude) ---
+anthropic>=0.69.0
+
+# --- Testes (rode com: pip install -r requirements.txt && pytest) ---
+pytest==8.3.4
+httpx==0.28.1                 # cliente usado pelo TestClient do FastAPI

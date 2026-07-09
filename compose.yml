@@ -1,0 +1,55 @@
+# Compose de DESENVOLVIMENTO (localhost).
+# Produção/AWS: veja compose.prod.yml e deploy/aws.md.
+services:
+  # Serviço 1: a API (FastAPI). Construída a partir do nosso Dockerfile.
+  api:
+    build:
+      context: ./API
+      target: dev            # alvo com --reload (ver Dockerfile)
+    ports:
+      # "máquina:container" — você acessa localhost:8000 no navegador,
+      # que cai na porta 8000 onde o uvicorn escuta dentro do container.
+      - "8000:8000"
+    volumes:
+      # Bind-mount: a pasta ./API da sua máquina aparece em /app no
+      # container. Assim, quando você edita o código, o --reload pega
+      # na hora, sem rebuild. (Modo desenvolvimento.)
+      - ./API:/app
+    # env_file: o app lê config (DATABASE_URL, ANTHROPIC_API_KEY...) do .env.
+    # Crie o arquivo a partir do API/.env.example (required:false = não quebra
+    # a subida se o .env ainda não existir; os defaults do config.py assumem).
+    env_file:
+      - path: ./API/.env
+        required: false
+    depends_on:
+      db:
+        # Espera o Postgres ACEITAR CONEXÕES (healthcheck abaixo), não só
+        # o container existir — sem isso a API pode subir antes do banco.
+        condition: service_healthy
+
+  # Serviço 2: o banco (Postgres). Usa a imagem oficial direto do registry.
+  db:
+    image: postgres:16
+    environment:
+      # Configuração inicial obrigatória do Postgres.
+      POSTGRES_USER: mnemo
+      POSTGRES_PASSWORD: mnemo
+      POSTGRES_DB: mnemo
+    ports:
+      # Expõe o banco na sua máquina pra você consultar com SQL puro (psql, DBeaver),
+      # como pede o checkpoint da Etapa 4.
+      - "5432:5432"
+    volumes:
+      # Volume nomeado: os dados do banco sobrevivem a "docker compose down".
+      # É o que garante a memória entre dias (propósito do Mnemo, lá na Etapa 4).
+      - mnemo_db_data:/var/lib/postgresql/data
+      # Scripts .sql aqui rodam automaticamente na PRIMEIRA subida (volume vazio).
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mnemo -d mnemo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mnemo_db_data:

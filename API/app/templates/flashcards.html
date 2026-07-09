@@ -1,0 +1,185 @@
+<!-- Tela da AULA (Etapa 6): flashcards + transcrição em seções separadas.
+     É aqui que a regra da fonte (SDD §5) vira layout visível: a fala do
+     professor (fonte de verdade) tem seção própria, marcada; os flashcards
+     são derivados dela; complementos de IA futuros entrarão noutra seção. -->
+{% extends "base.html" %}
+{% set nav = 'deck' %}
+{% block title %}Mnemo — {{ aula.titulo }}{% endblock %}
+
+{% set catmap = {'conceito': 'conceito', 'definição': 'definicao', 'processo': 'processo', 'exemplo': 'exemplo'} %}
+
+{% block content %}
+<div class="page page-aula">
+
+  <!-- hero do deck -->
+  <div class="hero">
+    <div class="hero-circulo"></div>
+    <div>
+      <div class="hero-materia">{{ aula.materia or 'Aula' }}</div>
+      <h1 class="hero-titulo">{{ aula.titulo }}</h1>
+      <div class="hero-meta">
+        {{ aula.flashcards | length }} flashcards
+        {% if aula.duracao_segundos %} · aula de {{ (aula.duracao_segundos // 60) or 1 }} min{% endif %}
+        · {{ aula.criada_em.strftime('%d/%m/%Y') }}
+      </div>
+    </div>
+    {% if aula.flashcards %}
+    <button class="hero-btn" id="btn-estudar">Iniciar revisão</button>
+    {% endif %}
+  </div>
+
+  <!-- seção: flashcards (derivados da fala do professor) -->
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">Flashcards</h2>
+      <span class="badge badge-professor">derivados da fala do professor</span>
+    </div>
+
+    {% if aula.flashcards %}
+    <div class="grade-cartas">
+      {% for c in aula.flashcards %}
+      <div class="carta-preview">
+        <span class="chip cat-{{ catmap.get(c.categoria, 'conceito') }}">{{ c.categoria }}</span>
+        <p class="carta-frente">{{ c.pergunta }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alerta">
+      ⚠️ Os flashcards desta aula ainda não foram gerados (a transcrição está salva — nada foi perdido).
+      <form action="/aulas/{{ aula.id }}/gerar" method="post" style="display:inline">
+        <button class="cta cta-mini" type="submit">Gerar flashcards agora</button>
+      </form>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- seção: transcrição — A FONTE DE VERDADE, separada de propósito -->
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">Transcrição</h2>
+      <span class="badge badge-fonte">🎙 fala do professor · fonte de verdade</span>
+    </div>
+    <details class="transcricao">
+      <summary>Ver transcrição completa {% if aula.transcricao and aula.transcricao.idioma %}(idioma detectado: {{ aula.transcricao.idioma }}){% endif %}</summary>
+      <p>{{ aula.transcricao.texto if aula.transcricao else 'Sem transcrição.' }}</p>
+    </details>
+  </section>
+
+</div>
+
+<!-- ============ MODO DE ESTUDO (overlay) ============ -->
+{% if aula.flashcards %}
+<div class="estudo" id="estudo" hidden>
+  <div class="estudo-topo">
+    <span class="estudo-pos" id="estudo-pos">Cartão 1/{{ aula.flashcards | length }}</span>
+    <div class="barra"><div class="barra-fill" id="barra-fill"></div></div>
+    <span class="estudo-stats" id="estudo-stats">0 ✓ · 0 ✗</span>
+    <button class="fechar" id="btn-fechar" title="Fechar">✕</button>
+  </div>
+
+  <div class="estudo-centro">
+    <div class="flip-wrap" id="flip-wrap">
+      <div class="flip" id="flip">
+        <div class="face frente">
+          <span class="chip" id="carta-chip">conceito</span>
+          <div class="face-texto" id="carta-pergunta"></div>
+          <div class="face-dica">Clique para virar</div>
+        </div>
+        <div class="face verso">
+          <span class="chip chip-branco">Resposta</span>
+          <div class="face-texto" id="carta-resposta"></div>
+          <div class="face-extra" id="carta-explicacao"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="estudo-acoes">
+    <button class="acao acao-nao" id="btn-nao" disabled>Não lembrei</button>
+    <button class="acao acao-sim" id="btn-sim" disabled>Lembrei</button>
+  </div>
+</div>
+
+<!-- tela de conclusão -->
+<div class="estudo concluido" id="concluido" hidden>
+  <div class="conc-icone">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#4C4DDC"/></svg>
+  </div>
+  <h2 class="conc-titulo">Sessão concluída!</h2>
+  <p class="conc-sub">Você revisou {{ aula.flashcards | length }} flashcards de {{ aula.titulo }}</p>
+  <div class="conc-placar">
+    <div class="placar placar-sim"><b id="placar-sim">0</b><span>Lembrou</span></div>
+    <div class="placar placar-nao"><b id="placar-nao">0</b><span>A revisar</span></div>
+  </div>
+  <button class="cta" id="btn-reiniciar">Revisar de novo</button>
+  <a class="link-suave" href="/">Enviar outra aula</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if aula.flashcards %}
+<script>
+  const DECK = [
+    {% for c in aula.flashcards %}
+    {
+      categoria: {{ c.categoria | tojson }},
+      catClasse: "cat-{{ catmap.get(c.categoria, 'conceito') }}",
+      pergunta: {{ c.pergunta | tojson }},
+      resposta: {{ c.resposta | tojson }},
+      explicacao: {{ (c.explicacao or '') | tojson }}
+    }{{ "," if not loop.last }}
+    {% endfor %}
+  ];
+
+  const el = id => document.getElementById(id);
+  let idx = 0, virado = false, sim = 0, nao = 0;
+
+  function renderCarta() {
+    const c = DECK[idx];
+    virado = false;
+    el('flip').classList.remove('virado');
+    el('carta-chip').textContent = c.categoria;
+    el('carta-chip').className = 'chip ' + c.catClasse;
+    el('carta-pergunta').textContent = c.pergunta;
+    el('carta-resposta').textContent = c.resposta;
+    el('carta-explicacao').textContent = c.explicacao;
+    el('estudo-pos').textContent = `Cartão ${idx + 1}/${DECK.length}`;
+    el('barra-fill').style.width = Math.round((idx / DECK.length) * 100) + '%';
+    el('estudo-stats').textContent = `${sim} ✓ · ${nao} ✗`;
+    el('btn-sim').disabled = el('btn-nao').disabled = true;
+  }
+
+  function abrirEstudo() {
+    idx = 0; sim = 0; nao = 0;
+    el('concluido').hidden = true;
+    el('estudo').hidden = false;
+    renderCarta();
+  }
+
+  function avancar() {
+    if (idx + 1 >= DECK.length) {
+      el('estudo').hidden = true;
+      el('placar-sim').textContent = sim;
+      el('placar-nao').textContent = nao;
+      el('concluido').hidden = false;
+      return;
+    }
+    idx++;
+    renderCarta();
+  }
+
+  el('btn-estudar').addEventListener('click', abrirEstudo);
+  el('btn-reiniciar').addEventListener('click', abrirEstudo);
+  el('btn-fechar').addEventListener('click', () => el('estudo').hidden = true);
+  el('flip-wrap').addEventListener('click', () => {
+    virado = !virado;
+    el('flip').classList.toggle('virado', virado);
+    el('btn-sim').disabled = el('btn-nao').disabled = !virado;
+  });
+  el('btn-sim').addEventListener('click', () => { sim++; avancar(); });
+  el('btn-nao').addEventListener('click', () => { nao++; avancar(); });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,45 @@
+# Compose de PRODUÇÃO (ensaio local do que vai pra AWS).
+# Sobe a imagem fechada (target prod): sem bind mount, sem --reload,
+# usuário não-root — o mais perto possível do que o ECS vai rodar.
+#
+#   docker compose -f compose.prod.yml up --build
+#
+# Na AWS de verdade, o "db" daqui vira o RDS e as variáveis saem do
+# Secrets Manager — veja deploy/aws.md.
+services:
+  api:
+    build:
+      context: ./API
+      target: prod
+    image: mnemo-api:latest      # mesma tag que você vai empurrar pro ECR
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://mnemo:${POSTGRES_PASSWORD:-mnemo}@db:5432/mnemo
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?defina ANTHROPIC_API_KEY no ambiente ou num .env na raiz}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-4-8}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mnemo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mnemo}
+      POSTGRES_DB: mnemo
+    # Sem "ports": em produção o banco NÃO fica exposto pra fora da rede
+    # interna — só a API fala com ele (mesmo princípio do RDS em subnet privada).
+    volumes:
+      - mnemo_db_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mnemo -d mnemo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mnemo_db_data_prod:

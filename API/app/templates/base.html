@@ -1,0 +1,51 @@
+<!-- Layout-base Jinja2 (Etapa 6). As outras telas herdam daqui (block content).
+     Design baseado no mock aprovado (Mnemo.dc.html): fundo creme, sidebar branca,
+     índigo #4C4DDC como cor primária, Fredoka pra títulos e Inter pro corpo. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Mnemo{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <a class="logo" href="/">
+      <span class="logo-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#FFB020"/></svg>
+      </span>
+      <span class="logo-name">Mnemo</span>
+    </a>
+
+    <nav>
+      <a class="nav-item {% if nav == 'upload' %}active{% endif %}" href="/">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>
+        Nova aula
+      </a>
+      <a class="nav-item {% if nav == 'deck' %}active{% endif %}" href="/#aulas-recentes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="3" stroke="currentColor" stroke-width="2"/><path d="M3 9H21" stroke="currentColor" stroke-width="2"/></svg>
+        Meus decks
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="avatar">MN</span>
+      <span class="sidebar-footer-text">Mnemo · MVP</span>
+    </div>
+  </aside>
+
+  <!-- main -->
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

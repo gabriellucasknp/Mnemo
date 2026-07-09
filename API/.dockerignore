@@ -1,0 +1,14 @@
+# Fica AQUI (junto do contexto de build ./API) — um .dockerignore na raiz do
+# repositório é ignorado quando o build usa "build: ./API".
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+
+# SEGREDOS nunca entram na imagem: a chave da Anthropic vive no .env e é
+# injetada em runtime pelo compose (env_file) / pelo Secrets Manager na AWS.
+.env
+
+# Áudios temporários de execuções locais.
+storage

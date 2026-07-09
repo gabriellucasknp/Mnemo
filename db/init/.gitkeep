@@ -1,0 +1,4 @@
+# Scripts SQL de inicialização do Postgres (Etapa 4).
+# O Postgres roda automaticamente qualquer .sql colocado aqui na PRIMEIRA subida
+# do banco (volume vazio), via /docker-entrypoint-initdb.d (ver compose.yml).
+# Aqui você modela as tabelas de sessão, transcrição e flashcard (território seu).
