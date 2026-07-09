@@ -1,0 +1,87 @@
+# CD — deploy na AWS a cada push na main (depois que os testes passam).
+# Fluxo: testes -> build da imagem prod -> push pro ECR -> atualiza o serviço ECS.
+#
+# Autenticação SEM chave gravada: OIDC. O GitHub prova ao AWS IAM "este job
+# veio do repo X, branch main" e assume uma role — nenhum segredo de longa
+# duração no GitHub. Setup da role: deploy/aws.md, seção "GitHub Actions".
+#
+# Variáveis a configurar no repo (Settings -> Secrets and variables -> Actions):
+#   vars.AWS_REGION          ex.: us-east-1
+#   vars.ECS_CLUSTER         ex.: mnemo
+#   vars.ECS_SERVICE         ex.: mnemo-api
+#   secrets.AWS_ROLE_ARN     arn:aws:iam::<conta>:role/mnemo-github-deploy
+name: Deploy AWS
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write   # necessário pro OIDC (assumir a role na AWS)
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: API/requirements.txt
+      - name: Instalar dependências
+        working-directory: API
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Rodar testes
+        working-directory: API
+        run: python -m pytest tests -v
+
+  deploy:
+    needs: tests
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar na AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login no ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build e push da imagem (target prod)
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE=$REGISTRY/mnemo-api
+          docker build --target prod \
+            -t $IMAGE:${{ github.sha }} -t $IMAGE:latest ./API
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+      # force-new-deployment: o serviço puxa a :latest recém-publicada.
+      # (Evolução futura: renderizar a task definition com a tag do commit
+      # pra ter rollback por imagem imutável.)
+      - name: Atualizar serviço ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --service ${{ vars.ECS_SERVICE }} \
+            --force-new-deployment
+
+      - name: Esperar o serviço estabilizar
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --services ${{ vars.ECS_SERVICE }}

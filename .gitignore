@@ -1,0 +1,20 @@
+# Ambiente virtual local (existe só pro editor; não vai pro git nem pro Docker)
+venv/
+API/venv/
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Variáveis de ambiente sensíveis (pra quando você usar .env no futuro)
+.env
+
+# Áudios enviados: guarda a pasta, ignora o conteúdo
+API/storage/*
+!API/storage/.gitkeep
+
+# Modelos do Whisper baixados em cache (pesados)
+**/.cache/whisper/
+
+# Config local do Claude Code (por maquina)
+.claude/settings.local.json

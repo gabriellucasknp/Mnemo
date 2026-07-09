@@ -1,0 +1,31 @@
+# CI — roda a suíte de testes em todo push e pull request.
+# É o portão: o deploy (deploy.yml) só acontece se isto passar.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: API/requirements.txt
+
+      # Torch CPU-only: mesma otimização do Dockerfile (sem ela o runner
+      # baixa ~5 GB de CUDA à toa e o CI fica minutos mais lento).
+      - name: Instalar dependências
+        working-directory: API
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Rodar testes
+        working-directory: API
+        run: python -m pytest tests -v

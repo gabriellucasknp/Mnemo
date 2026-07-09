@@ -1,0 +1,6 @@
+# Nunca deixe estas coisas entrarem na imagem Docker:
+**/venv
+**/__pycache__
+**/*.pyc
+.git
+*.md

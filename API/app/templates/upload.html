@@ -1,0 +1,115 @@
+<!-- Tela de UPLOAD do áudio (Etapa 6). Formulário que envia o arquivo pro
+     fluxo completo (/enviar): transcreve, gera flashcards e redireciona. -->
+{% extends "base.html" %}
+{% set nav = 'upload' %}
+{% block title %}Mnemo — Nova aula{% endblock %}
+
+{% block content %}
+<div class="page page-upload">
+  <header class="page-head">
+    <h1>Bom dia 👋</h1>
+    <p class="sub">Transforme sua próxima aula em flashcards</p>
+  </header>
+
+  {% if erro %}
+  <div class="alerta">⚠️ {{ erro }}</div>
+  {% endif %}
+
+  <form id="form-upload" action="/enviar" method="post" enctype="multipart/form-data">
+    <label class="dropzone" id="dropzone">
+      <input type="file" name="audio" id="input-audio" accept=".mp3,.mp4,.wav,.m4a,.ogg,.webm,.flac" hidden>
+      <span class="drop-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round"/></svg>
+      </span>
+      <span class="drop-title" id="drop-title">Arraste um arquivo aqui</span>
+      <span class="drop-hint">ou clique para procurar · MP3, MP4, WAV</span>
+    </label>
+
+    <input class="campo-titulo" type="text" name="titulo" maxlength="255"
+           placeholder="Título da aula (opcional — a IA sugere um se deixar vazio)">
+
+    <button class="cta" id="btn-enviar" type="submit" disabled>Gerar Flashcards</button>
+  </form>
+
+  <section id="aulas-recentes">
+    <h2 class="section-title">Aulas recentes</h2>
+    {% if aulas %}
+    <div class="lista-aulas">
+      {% for a in aulas %}
+      <a class="aula-item" href="/aulas/{{ a.id }}">
+        <span class="aula-icone">
+          <span class="eq"><i></i><i></i><i></i><i></i></span>
+        </span>
+        <span class="aula-info">
+          <span class="aula-nome">{% if a.materia %}{{ a.materia }} — {% endif %}{{ a.titulo }}</span>
+          <span class="aula-meta">
+            {% if a.duracao_segundos %}{{ (a.duracao_segundos // 60) or 1 }} min · {% endif %}{{ a.criada_em.strftime('%d/%m/%Y') }}
+            · {{ a.flashcards | length }} flashcards
+          </span>
+        </span>
+        <span class="seta">→</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="vazio">Nenhuma aula ainda. Suba o primeiro áudio acima ✨</p>
+    {% endif %}
+  </section>
+</div>
+
+<!-- overlay de processamento (o fluxo é síncrono no MVP — Celery vem depois) -->
+<div class="processing" id="processing" hidden>
+  <div class="ring"><div class="ring-spinner"></div></div>
+  <div class="proc-steps">
+    <span class="proc-step" id="step-0">Transcrevendo áudio</span>
+    <span class="proc-step" id="step-1">Identificando conceitos-chave</span>
+    <span class="proc-step" id="step-2">Gerando flashcards</span>
+  </div>
+  <p class="proc-hint">Isso pode levar alguns minutos dependendo do tamanho do áudio ✨</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const input = document.getElementById('input-audio');
+  const btn = document.getElementById('btn-enviar');
+  const dropTitle = document.getElementById('drop-title');
+  const dropzone = document.getElementById('dropzone');
+
+  input.addEventListener('change', () => {
+    if (input.files.length) {
+      dropTitle.textContent = input.files[0].name;
+      dropzone.classList.add('selecionado');
+      btn.disabled = false;
+    }
+  });
+
+  // arrastar e soltar
+  ['dragover', 'dragleave', 'drop'].forEach(ev =>
+    dropzone.addEventListener(ev, e => e.preventDefault()));
+  dropzone.addEventListener('dragover', () => dropzone.classList.add('drag'));
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    dropzone.classList.remove('drag');
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // ao enviar, mostra o overlay e anima os passos (progresso "honesto": indeterminado)
+  document.getElementById('form-upload').addEventListener('submit', () => {
+    document.getElementById('processing').hidden = false;
+    let i = 0;
+    const passos = [0, 1, 2].map(n => document.getElementById('step-' + n));
+    passos[0].classList.add('ativo');
+    setInterval(() => {
+      if (i < passos.length - 1) {
+        passos[i].classList.replace('ativo', 'feito');
+        i++;
+        passos[i].classList.add('ativo');
+      }
+    }, 20000);
+  });
+</script>
+{% endblock %}
