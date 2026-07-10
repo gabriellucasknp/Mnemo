@@ -8,8 +8,7 @@ Capta o áudio de uma aula, transcreve com Whisper e gera flashcards de estudo c
 A fala do professor é a fonte de verdade — todo dado carrega sua origem marcada
 (`professor` / `ia`) desde o banco até a tela.
 
-[![CI](https://github.com/gabriellucasknp/Mnemo/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriellucasknp/Mnemo/actions/workflows/ci.yml)
-[![Deploy](https://github.com/gabriellucasknp/Mnemo/actions/workflows/deploy.yml/badge.svg)](https://github.com/gabriellucasknp/Mnemo/actions/workflows/deploy.yml)
+
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
