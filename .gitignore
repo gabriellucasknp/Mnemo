@@ -16,5 +16,6 @@ API/storage/*
 # Modelos do Whisper baixados em cache (pesados)
 **/.cache/whisper/
 
-# Config local do Claude Code (por maquina)
-.claude/settings.local.json
+# Configs locais de ferramentas (por máquina)
+.claude/
+.agent/

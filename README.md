@@ -1,37 +1,86 @@
-# Mnemo
+<div align="center">
 
-Capta o áudio de uma aula, transcreve com Whisper e gera flashcards de estudo
-com IA (Claude). A fala do professor é a fonte de verdade — todo dado carrega
-sua origem marcada (`professor` / `ia`) desde o banco até a tela.
+# 🎓 Mnemo
 
-Stack: **FastAPI + PostgreSQL + SQLAlchemy + Whisper + Anthropic API + Docker**.
-Contexto e decisões: [sdd.md](sdd.md) · [plano de execução.md](plano%20de%20execução.md).
+**Grave a aula. Ganhe a transcrição. Estude com flashcards.**
 
-## Rodar (desenvolvimento)
+Capta o áudio de uma aula, transcreve com Whisper e gera flashcards de estudo com IA.
+A fala do professor é a fonte de verdade — todo dado carrega sua origem marcada
+(`professor` / `ia`) desde o banco até a tela.
+
+[![CI](https://github.com/gabriellucasknp/Mnemo/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriellucasknp/Mnemo/actions/workflows/ci.yml)
+[![Deploy](https://github.com/gabriellucasknp/Mnemo/actions/workflows/deploy.yml/badge.svg)](https://github.com/gabriellucasknp/Mnemo/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![PySpark](https://img.shields.io/badge/PySpark-E25A1C?logo=apachespark&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-FF9900?logo=amazonwebservices&logoColor=white)
+
+</div>
+
+---
+
+## 🧭 Como funciona
+
+```
+🎙️ áudio da aula ──▶ Whisper (transcrição) ──▶ IA (flashcards) ──▶ 🃏 deck de estudo
+                              │                                          │
+                              ▼                                          ▼
+                         PostgreSQL ◀────── PySpark (medallion) ──▶ analytics
+```
+
+**Stack:** FastAPI · PostgreSQL · SQLAlchemy · Whisper · Anthropic API · PySpark · Docker · GitHub Actions · AWS ECS Fargate
+
+Contexto e decisões: [sdd.md](sdd.md) · [plano de execução.md](plano%20de%20execução.md)
+
+## 🚀 Rodar (desenvolvimento)
 
 ```bash
 cp API/.env.example API/.env   # e preencha ANTHROPIC_API_KEY
 docker compose up --build
 ```
 
-- App: <http://localhost:8000> (tela de upload)
-- API interativa: <http://localhost:8000/docs>
-- Saúde: `/health` (app) e `/health/db` (banco)
-- Postgres exposto em `localhost:5432` (user/senha/db: `mnemo`) pra SQL puro.
+| Onde | O quê |
+|---|---|
+| <http://localhost:8000> | Tela de upload |
+| <http://localhost:8000/docs> | API interativa (Swagger) |
+| `/health` · `/health/db` | Saúde do app e do banco |
+| `localhost:5432` | Postgres exposto (user/senha/db: `mnemo`) pra SQL puro |
 
 O código em `API/` está bind-mounted no container: editar → `--reload` aplica.
 
-## Testes
+## ✅ Testes
 
 ```bash
 docker compose exec api pytest          # dentro do container
 # ou local: cd API && python -m pytest
 ```
 
-A suíte (18 testes) roda em ~1 s: usa SQLite em memória e mocks do Whisper e
+A suíte (20 testes) roda em ~1 s: usa SQLite em memória e mocks do Whisper e
 da Anthropic — nada de rede, custo de API ou espera de transcrição.
 
-## Ensaio de produção (local)
+## 📊 Pipeline de dados (PySpark)
+
+```bash
+docker compose --profile pipeline run --rm pipeline
+```
+
+ETL em arquitetura **medallion** ([pipeline/jobs/etl_mnemo.py](pipeline/jobs/etl_mnemo.py)):
+
+| Camada | O que acontece |
+|---|---|
+| 🥉 **Bronze** | Snapshot cru das tabelas do Postgres, em Parquet particionado por data de ingestão (volume `mnemo_datalake`) |
+| 🥈 **Silver** | Dados limpos: texto aparado, matéria normalizada, duplicatas removidas, colunas derivadas (nº de palavras) |
+| 🥇 **Gold** | Métricas prontas pra consumo, gravadas no lake **e** de volta no Postgres (schema `analytics`): `metricas_aulas`, `resumo_materias`, `distribuicao_categorias` |
+
+Consulta rápida depois de rodar:
+
+```sql
+SELECT * FROM analytics.resumo_materias;
+```
+
+## 🏭 Ensaio de produção (local)
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-... docker compose -f compose.prod.yml up --build
@@ -40,7 +89,7 @@ ANTHROPIC_API_KEY=sk-ant-... docker compose -f compose.prod.yml up --build
 Sobe a imagem fechada (target `prod` do [Dockerfile](API/Dockerfile)): sem
 reload, usuário não-root, healthcheck, banco sem porta exposta.
 
-## Deploy AWS (via GitHub)
+## ☁️ Deploy AWS (via GitHub)
 
 A cada push na `main`, o GitHub Actions roda os testes e, se passarem, publica
 a imagem no ECR e atualiza o serviço ECS
@@ -51,7 +100,7 @@ Setup inicial (uma vez): [deploy/aws.md](deploy/aws.md) — ECR + RDS + Secrets
 Manager + ECS Fargate + role OIDC pro GitHub, com task definition de exemplo
 em [deploy/ecs-task-definition.json](deploy/ecs-task-definition.json).
 
-## Estrutura
+## 🗂️ Estrutura
 
 ```
 API/
@@ -65,7 +114,10 @@ API/
     templates/ static/  # telas server-rendered (Jinja2)
   tests/             # suíte com mocks (SQLite in-memory)
   Dockerfile         # targets: dev (reload) e prod (AWS-ready)
-compose.yml          # dev: api + postgres
+pipeline/
+  jobs/etl_mnemo.py  # ETL PySpark: bronze -> silver -> gold (schema analytics)
+  Dockerfile         # python + JRE + driver JDBC do Postgres
+compose.yml          # dev: api + postgres (+ pipeline sob demanda)
 compose.prod.yml     # ensaio local de produção
 deploy/              # guia AWS + task definition ECS
 ```

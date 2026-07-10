@@ -1,6 +1,7 @@
 # Testes do fluxo de AULAS (Etapas 3+4): upload -> transcrição -> persistência.
 import io
 
+from app.config import settings
 from app.models import Aula, Origem, Transcricao
 from tests.conftest import TRANSCRICAO_FAKE
 
@@ -34,6 +35,21 @@ def test_enviar_aula_rejeita_extensao_invalida(client, storage_temporario):
     resposta = client.post("/api/aulas", files=_audio_fake("notas.txt"))
     assert resposta.status_code == 400
     assert "não suportado" in resposta.json()["detail"].lower()
+
+
+def test_enviar_aula_rejeita_arquivo_grande_demais(
+    client, storage_temporario, monkeypatch
+):
+    # Limite baixado pra 1 MB só neste teste; o upload de 2 MB deve ser cortado.
+    monkeypatch.setattr(settings, "max_upload_mb", 1)
+    grande = {"audio": ("aula.mp3", io.BytesIO(b"x" * (2 * 1024 * 1024)), "audio/mpeg")}
+
+    resposta = client.post("/api/aulas", files=grande)
+
+    assert resposta.status_code == 400
+    assert "limite" in resposta.json()["detail"].lower()
+    # O arquivo parcial não pode sobrar no storage.
+    assert list(storage_temporario.iterdir()) == []
 
 
 def test_audio_temporario_e_apagado_apos_transcricao(

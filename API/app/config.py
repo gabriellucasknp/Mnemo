@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # --- Armazenamento temporário dos áudios enviados ---
     storage_dir: str = "storage"
 
+    # --- Segurança: teto de upload (MB) ---
+    # Sem limite, um único request gigante enche o disco/memória do servidor.
+    max_upload_mb: int = 200
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

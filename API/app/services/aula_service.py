@@ -13,6 +13,7 @@ from app.models import Aula, Flashcard, Origem, Transcricao
 from app.services import flashcard_service, whisper_service
 
 EXTENSOES_ACEITAS = {".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm", ".flac"}
+TITULO_PADRAO = "Aula sem título"
 
 
 def salvar_audio(arquivo: UploadFile) -> Path:
@@ -22,9 +23,23 @@ def salvar_audio(arquivo: UploadFile) -> Path:
         raise ValueError(f"Formato não suportado: {sufixo or '(sem extensão)'}")
     destino = Path(settings.storage_dir) / f"{uuid.uuid4().hex}{sufixo}"
     destino.parent.mkdir(parents=True, exist_ok=True)
-    with destino.open("wb") as f:
-        while pedaco := arquivo.file.read(1024 * 1024):
-            f.write(pedaco)
+
+    # Limite de tamanho verificado DURANTE o streaming (não depois): um upload
+    # gigante é cortado no ato, sem nunca ocupar o disco inteiro.
+    limite_bytes = settings.max_upload_mb * 1024 * 1024
+    total = 0
+    try:
+        with destino.open("wb") as f:
+            while pedaco := arquivo.file.read(1024 * 1024):
+                total += len(pedaco)
+                if total > limite_bytes:
+                    raise ValueError(
+                        f"Arquivo excede o limite de {settings.max_upload_mb} MB."
+                    )
+                f.write(pedaco)
+    except ValueError:
+        destino.unlink(missing_ok=True)  # não deixa o parcial pra trás
+        raise
     return destino
 
 
@@ -38,7 +53,7 @@ def criar_aula_com_transcricao(db: Session, caminho_audio: Path, titulo: str | N
         caminho_audio.unlink(missing_ok=True)
 
     aula = Aula(
-        titulo=titulo or "Aula sem título",
+        titulo=titulo or TITULO_PADRAO,
         duracao_segundos=resultado["duracao_segundos"],
     )
     aula.transcricao = Transcricao(
@@ -60,7 +75,7 @@ def gerar_e_salvar_flashcards(db: Session, aula: Aula) -> Aula:
     deck = flashcard_service.gerar_flashcards(aula.transcricao.texto)
 
     # A IA infere título/matéria; só sobrescreve se o usuário não deu um título.
-    if aula.titulo == "Aula sem título" and deck.titulo:
+    if aula.titulo == TITULO_PADRAO and deck.titulo:
         aula.titulo = deck.titulo
     aula.materia = deck.materia
 
