@@ -1,0 +1,3 @@
+# Dependências do PIPELINE de dados (separadas das da API de propósito:
+# o PySpark pesa ~300 MB e a API não precisa dele — cada imagem leva só o seu).
+pyspark==3.5.4

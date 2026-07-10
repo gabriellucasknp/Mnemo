@@ -29,3 +29,20 @@ jobs:
       - name: Rodar testes
         working-directory: API
         run: python -m pytest tests -v
+
+  # Auditoria de segurança das dependências (CVEs conhecidos no PyPI).
+  # continue-on-error: informativo por enquanto — torch/whisper às vezes
+  # carregam CVEs sem correção publicada; não queremos travar todo push
+  # por algo fora do nosso controle. O log fica visível em cada execução.
+  security-audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pip-audit nas dependências da API
+        run: |
+          pip install pip-audit
+          pip-audit -r API/requirements.txt --skip-editable

@@ -1,5 +1,10 @@
 # CD — deploy na AWS a cada push na main (depois que os testes passam).
-# Fluxo: testes -> build da imagem prod -> push pro ECR -> atualiza o serviço ECS.
+# Fluxo: testes -> build da imagem prod -> scan de vulnerabilidades (Trivy)
+#        -> push pro ECR -> nova task definition com a TAG DO COMMIT -> ECS.
+#
+# Tag imutável: cada deploy publica :SHA (além de :latest). A task definition
+# aponta pro SHA exato — rollback = redeployar a task definition anterior,
+# sem depender do que ":latest" significa naquele momento.
 #
 # Autenticação SEM chave gravada: OIDC. O GitHub prova ao AWS IAM "este job
 # veio do repo X, branch main" e assume uma role — nenhum segredo de longa
@@ -9,6 +14,7 @@
 #   vars.AWS_REGION          ex.: us-east-1
 #   vars.ECS_CLUSTER         ex.: mnemo
 #   vars.ECS_SERVICE         ex.: mnemo-api
+#   vars.ECS_TASK_FAMILY     ex.: mnemo-api (família da task definition)
 #   secrets.AWS_ROLE_ARN     arn:aws:iam::<conta>:role/mnemo-github-deploy
 name: Deploy AWS
 
@@ -60,28 +66,50 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build e push da imagem (target prod)
+      - name: Build da imagem (target prod)
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
           IMAGE=$REGISTRY/mnemo-api
           docker build --target prod \
             -t $IMAGE:${{ github.sha }} -t $IMAGE:latest ./API
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      # Portão de segurança: a imagem só sobe pro ECR se não tiver
+      # vulnerabilidade CRÍTICA com correção disponível.
+      - name: Scan de vulnerabilidades (Trivy)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push pro ECR
+        run: |
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      # force-new-deployment: o serviço puxa a :latest recém-publicada.
-      # (Evolução futura: renderizar a task definition com a tag do commit
-      # pra ter rollback por imagem imutável.)
-      - name: Atualizar serviço ECS
+      # Parte da task definition ATUAL registrada no ECS (com os ARNs de
+      # secrets/roles reais) e troca só a imagem pela tag do commit.
+      - name: Baixar task definition atual
         run: |
-          aws ecs update-service \
-            --cluster ${{ vars.ECS_CLUSTER }} \
-            --service ${{ vars.ECS_SERVICE }} \
-            --force-new-deployment
+          aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASK_FAMILY }} \
+            --query taskDefinition > task-definition.json
 
-      - name: Esperar o serviço estabilizar
-        run: |
-          aws ecs wait services-stable \
-            --cluster ${{ vars.ECS_CLUSTER }} \
-            --services ${{ vars.ECS_SERVICE }}
+      - name: Renderizar task definition com a imagem do commit
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Registrar e deployar no ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          service: ${{ vars.ECS_SERVICE }}
+          wait-for-service-stability: true

@@ -46,11 +46,21 @@ Diretrizes:
 - Classifique cada cartão em: conceito, definição, processo ou exemplo."""
 
 
+# Cliente criado uma vez e reutilizado (mesmo padrão do modelo Whisper):
+# o SDK mantém pool de conexões HTTP — recriar a cada chamada joga isso fora.
+_client: anthropic.Anthropic | None = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
+    return _client
+
+
 def gerar_flashcards(texto_transcricao: str) -> DeckGerado:
     """Manda a transcrição pro Claude e devolve o deck estruturado e validado."""
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
-
-    response = client.messages.parse(
+    response = _get_client().messages.parse(
         model=settings.anthropic_model,
         max_tokens=16000,
         thinking={"type": "adaptive"},  # o modelo decide quanto "pensar"

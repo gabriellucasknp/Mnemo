@@ -26,7 +26,7 @@ def enviar_aula(
     try:
         caminho = aula_service.salvar_audio(audio)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return aula_service.criar_aula_com_transcricao(db, caminho, titulo)
 
 

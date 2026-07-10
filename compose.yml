@@ -27,6 +27,27 @@ services:
         # o container existir — sem isso a API pode subir antes do banco.
         condition: service_healthy
 
+  # Serviço 3: o PIPELINE de dados (PySpark). Não fica rodando — é um job:
+  # extrai as tabelas do Postgres, grava o data lake (bronze/silver/gold em
+  # Parquet) e devolve as tabelas analíticas no schema "analytics".
+  #
+  #   rodar: docker compose --profile pipeline run --rm pipeline
+  #
+  # profiles: ["pipeline"] = NÃO sobe junto com "docker compose up";
+  # só roda quando você pede explicitamente (é batch, não serviço).
+  pipeline:
+    build: ./pipeline
+    profiles: ["pipeline"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://mnemo:mnemo@db:5432/mnemo
+      DATALAKE_DIR: /data/lake
+    volumes:
+      # O data lake sobrevive entre execuções (histórico do bronze).
+      - mnemo_datalake:/data/lake
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Serviço 2: o banco (Postgres). Usa a imagem oficial direto do registry.
   db:
     image: postgres:16
@@ -53,3 +74,4 @@ services:
 
 volumes:
   mnemo_db_data:
+  mnemo_datalake:
