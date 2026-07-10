@@ -88,36 +88,3 @@ ANTHROPIC_API_KEY=sk-ant-... docker compose -f compose.prod.yml up --build
 
 Sobe a imagem fechada (target `prod` do [Dockerfile](API/Dockerfile)): sem
 reload, usuário não-root, healthcheck, banco sem porta exposta.
-
-## ☁️ Deploy AWS (via GitHub)
-
-A cada push na `main`, o GitHub Actions roda os testes e, se passarem, publica
-a imagem no ECR e atualiza o serviço ECS
-([.github/workflows/deploy.yml](.github/workflows/deploy.yml)). Todo push/PR
-também roda o CI de testes ([ci.yml](.github/workflows/ci.yml)).
-
-Setup inicial (uma vez): [deploy/aws.md](deploy/aws.md) — ECR + RDS + Secrets
-Manager + ECS Fargate + role OIDC pro GitHub, com task definition de exemplo
-em [deploy/ecs-task-definition.json](deploy/ecs-task-definition.json).
-
-## 🗂️ Estrutura
-
-```
-API/
-  app/
-    main.py          # instância FastAPI + routers
-    config.py        # settings via variáveis de ambiente
-    database.py      # engine/sessão SQLAlchemy
-    models/          # Aula, Transcricao, Flashcard (origem marcada)
-    routers/         # health, aulas (API), flashcards (API), páginas (telas)
-    services/        # whisper, geração de flashcards (IA), orquestração
-    templates/ static/  # telas server-rendered (Jinja2)
-  tests/             # suíte com mocks (SQLite in-memory)
-  Dockerfile         # targets: dev (reload) e prod (AWS-ready)
-pipeline/
-  jobs/etl_mnemo.py  # ETL PySpark: bronze -> silver -> gold (schema analytics)
-  Dockerfile         # python + JRE + driver JDBC do Postgres
-compose.yml          # dev: api + postgres (+ pipeline sob demanda)
-compose.prod.yml     # ensaio local de produção
-deploy/              # guia AWS + task definition ECS
-```
