@@ -1,64 +1,62 @@
 # Deploy do Mnemo na AWS
 
-Mapa mental: o que o compose faz na sua máquina, três serviços da AWS fazem na nuvem.
+## Arquitetura
 
-| Local (compose)            | AWS                                   | Papel                        |
-| -------------------------- | ------------------------------------- | ---------------------------- |
-| `docker build` (imagem)    | **ECR** (Elastic Container Registry)  | guarda a imagem              |
-| serviço `api`              | **ECS Fargate** (ou App Runner)       | roda o container             |
-| serviço `db`               | **RDS Postgres**                      | banco gerenciado             |
-| `.env`                     | **Secrets Manager** / SSM Parameters  | segredos fora da imagem      |
-| `ports: 8000:8000`         | **Application Load Balancer**         | porta de entrada + HTTPS     |
+```
+Local (compose)                  AWS
+─────────────────────────────────────────────────────
+docker build (imagem)       →   ECR
+serviço api                 →   ECS Fargate / App Runner / Lambda
+serviço db                  →   RDS Postgres
+.env                        →   Secrets Manager
+ports: 8000:8000            →   ALB / ALB embutido
+```
 
-A imagem `prod` (target `prod` do Dockerfile) já está pronta pra isso: sem
-`--reload`, usuário não-root, healthcheck em `/health`, modelo Whisper baixado
-no build e **sem o `.env` dentro** (ver `API/.dockerignore`).
+A imagem `prod` já está pronta: sem reload, usuário não-root, healthcheck em `/health`.
 
 ---
 
-## Passo 0 — Pré-requisitos
+## Pré-requisitos
 
-- Conta AWS + [AWS CLI](https://docs.aws.amazon.com/cli/) configurada (`aws configure`).
-- Região escolhida (ex.: `us-east-1` ou `sa-east-1`). Use a mesma em tudo.
-- Ensaio local aprovado: `docker compose -f compose.prod.yml up --build`
-  e o fluxo inteiro funcionando em `localhost:8000`.
+- Conta AWS + AWS CLI configurada (`aws configure`)
+- Docker funcionando
+- `docker compose -f compose.prod.yml up --build` aprovado local
 
-## Passo 1 — ECR: publicar a imagem
+---
+
+## Opção 1 — ECS Fargate (recomendado para produção)
+
+### Passo 1: ECR
 
 ```bash
-AWS_ACCOUNT=<seu-account-id>
+AWS_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 REGION=us-east-1
 
 aws ecr create-repository --repository-name mnemo-api --region $REGION
 
-# Login do Docker no ECR
 aws ecr get-login-password --region $REGION \
   | docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.$REGION.amazonaws.com
 
-# Build do alvo de produção. IMPORTANTE (Fargate roda linux/amd64):
 docker build --target prod --platform linux/amd64 -t mnemo-api ./API
-
 docker tag mnemo-api:latest $AWS_ACCOUNT.dkr.ecr.$REGION.amazonaws.com/mnemo-api:latest
 docker push $AWS_ACCOUNT.dkr.ecr.$REGION.amazonaws.com/mnemo-api:latest
 ```
 
-## Passo 2 — RDS: o banco
+### Passo 2: RDS
 
-Console → RDS → *Create database* → PostgreSQL 16:
+Console → RDS → Create database → PostgreSQL 16:
+- Template: Free tier (`db.t4g.micro`)
+- DB name: `mnemo`, user: `mnemo`, senha: gerada
+- Public access: **No** (subnet privada)
+- Security group: 5432 apenas do ECS
 
-- Template **Free tier** (`db.t4g.micro`) — projeto pessoal, custo ~zero no 1º ano.
-- DB name `mnemo`, usuário `mnemo`, senha forte (gerada).
-- **Public access: No.** O banco vive em subnet privada; só a API alcança ele.
-- Security group do RDS: liberar a porta **5432 somente para o security group
-  do serviço ECS** (não para 0.0.0.0/0 — esse é o erro clássico).
-
-Anote o endpoint (ex.: `mnemo.xxxxx.us-east-1.rds.amazonaws.com`). A URL fica:
+Endpoint: `mnemo.xxxxx.us-east-1.rds.amazonaws.com`
 
 ```
 postgresql+psycopg://mnemo:<senha>@<endpoint>:5432/mnemo
 ```
 
-## Passo 3 — Secrets Manager: os segredos
+### Passo 3: Secrets Manager
 
 ```bash
 aws secretsmanager create-secret --name mnemo/database-url \
@@ -68,93 +66,137 @@ aws secretsmanager create-secret --name mnemo/anthropic-api-key \
   --secret-string 'sk-ant-...'
 ```
 
-Regra de ouro: segredo **nunca** vai em variável de ambiente plana na task
-definition, nunca na imagem, nunca no git. Só referência ao secret.
+### Passo 4: ECS
 
-## Passo 4 — ECS Fargate: rodar o container
+1. Cluster: `mnemo` (Fargate)
+2. Task definition: usar `deploy/ecs-task-definition.json` (trocar `<ACCOUNT>`/`<REGION>`)
+   - 2 vCPU / 6 GB RAM (Whisper precisa de folga)
+   - Segredos do Secrets Manager
+   - Health check em `/health`
+   - Logs no CloudWatch
+3. Service: 1 task, ALB na porta 8000
 
-1. Cluster: ECS → *Create cluster* → Fargate, nome `mnemo`.
-2. Task definition: use o modelo [`ecs-task-definition.json`](ecs-task-definition.json)
-   (troque `<ACCOUNT>`/`<REGION>`) — pontos que importam:
-   - **2 vCPU / 6 GB de RAM**: o Whisper `base` em CPU precisa de folga;
-     com menos que isso a transcrição fica lenta ou o container morre por OOM.
-   - Segredos vêm do Secrets Manager (bloco `secrets`).
-   - A role de execução precisa da policy que permite ler esses 2 secrets.
-3. Service: *Create service* → Launch type Fargate → 1 task →
-   Application Load Balancer na porta 8000, health check path `/health`.
-4. Security groups: ALB aberto pra internet (80/443); ECS aceita 8000 só do
-   ALB; RDS aceita 5432 só do ECS.
+### Passo 5: GitHub Actions (CD)
 
-Alternativa mais simples (menos peças): **App Runner** apontando direto pra
-imagem no ECR — ele cria load balancer, HTTPS e autoscaling sozinho. Limite:
-menos controle de rede; o RDS precisa de VPC connector.
+A cada push na `main`: testes → build → scan Trivy → ECR → ECS.
 
-## Passo 5 — GitHub Actions: deploy contínuo (o caminho escolhido)
-
-O deploy do dia a dia **não** é manual: a cada push na `main`, o workflow
-[.github/workflows/deploy.yml](../.github/workflows/deploy.yml) roda os testes,
-constrói a imagem `prod`, publica no ECR e força um novo deployment no ECS.
-Os passos 1–4 acima são o setup inicial (feito uma vez); o Actions assume dali em diante.
-
-Autenticação por **OIDC** — o GitHub assume uma role na AWS, sem access key
-gravada em secret:
+Setup OIDC (uma vez):
 
 ```bash
-# 1. Provedor OIDC do GitHub na sua conta (uma vez só)
+# Provedor OIDC
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
   --client-id-list sts.amazonaws.com
 
-# 2. Role que o workflow assume (restrita ao SEU repo, branch main)
+# Role de deploy
 aws iam create-role --role-name mnemo-github-deploy \
-  --assume-role-policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Principal": {"Federated": "arn:aws:iam::<ACCOUNT>:oidc-provider/token.actions.githubusercontent.com"},
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"},
-        "StringLike": {"token.actions.githubusercontent.com:sub": "repo:<SEU_USUARIO>/<SEU_REPO>:ref:refs/heads/main"}
-      }
-    }]
-  }'
+  --assume-role-policy-document file://deploy/github-oidc-trust.json
 
-# 3. Permissões mínimas: push no ECR + update no serviço ECS
+# Permissões: ECR + ECS
 aws iam attach-role-policy --role-name mnemo-github-deploy \
   --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
-# (para o ECS, crie uma policy inline com ecs:UpdateService, ecs:DescribeServices
-#  e iam:PassRole na task execution role)
 ```
 
-No repositório GitHub (Settings → Secrets and variables → Actions):
+Repo Settings → Secrets: `AWS_ROLE_ARN`
+Repo Settings → Variables: `AWS_REGION`, `ECS_CLUSTER`, `ECS_SERVICE`, `ECS_TASK_FAMILY`
 
-| Onde     | Nome            | Valor                                        |
-| -------- | --------------- | -------------------------------------------- |
-| Secret   | `AWS_ROLE_ARN`  | `arn:aws:iam::<ACCOUNT>:role/mnemo-github-deploy` |
-| Variable | `AWS_REGION`    | ex.: `us-east-1`                             |
-| Variable | `ECS_CLUSTER`   | `mnemo`                                      |
-| Variable | `ECS_SERVICE`   | `mnemo-api`                                  |
+---
 
-## Passo 6 — Verificação pós-deploy
+## Opção 2 — App Runner (mais simples, menos peças)
 
-1. `https://<dns-do-alb>/health` → `{"status":"ok"}`
-2. `https://<dns-do-alb>/health/db` → `{"status":"ok","database":"ok"}`
-   (prova que ECS→RDS e o security group estão certos)
-3. Fluxo real: subir um áudio curto pela tela e ver os flashcards.
+App Runner: imagem no ECR + auto-deploy, load balancer e HTTPS embutidos.
 
-## Custos (ordem de grandeza, us-east-1)
+1. Console → App Runner → Create service
+2. Source: ECR → `mnemo-api:latest`
+3. Build: não precisa (imagem já construída)
+4. Port: 8000
+5. Environment variables: mesmos secrets (via ARN do Secrets Manager)
+6. Health check: `/health`
+7. CPU/Memory: 2 vCPU / 6 GB
 
-- Fargate 2 vCPU/6 GB no ar 24/7: ~US$ 70/mês → **rode sob demanda**
-  (`desired count 0` quando não estiver usando; subir de novo leva ~1 min).
-- RDS free tier: ~0 no 1º ano; depois ~US$ 15/mês.
-- ALB: ~US$ 16/mês (App Runner embute isso e sai mais barato em uso baixo).
+Custo estimado: ~US$ 30/mês (sob demanda).
 
-## Evoluções que o plano já previa (fases futuras)
+---
 
-- **S3** pros áudios (hoje o áudio é apagado após transcrever; com S3 dá pra
-  guardar o original) — trocar `storage/` local por upload ao bucket.
-- **Celery + Redis (ElastiCache/SQS)** pra transcrição assíncrona — mata o
-  timeout do ALB em áudios longos (limite padrão: 60 s de idle; aumente o
-  idle timeout do ALB pra ~300 s enquanto o fluxo for síncrono).
-- **Migrações com Alembic** no lugar do `create_all` da subida.
+## Opção 3 — Lambda (container image, sob demanda)
+
+Para fluxos assíncronos ou custo mínimo.
+
+1. ECR: mesma imagem `prod`
+2. Lambda: Create function → Container image → apontar pro ECR
+3. Config:
+   - Memory: 6144 MB (mínimo pra Whisper)
+   - Timeout: 15 min (limite do Lambda)
+   - VPC: mesma do RDS
+4. ALB: forward `/api/*` pro Lambda via target group
+5. Variáveis: Secrets Manager via ARN
+
+**Atenção:** O Lambda cold start com Whisper pode levar 30-60s. Use Provisioned Concurrency se precisar de resposta rápida.
+
+---
+
+## Opção 4 — EC2 (manual, controle total)
+
+Para quem quer SSH e acesso direto.
+
+```bash
+# Na EC2 (Amazon Linux 2023 ou Ubuntu):
+sudo yum install docker -y
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+
+# Instalar Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
+  -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Clonar e rodar
+git clone <repo>
+cd Mnemo
+cp API/.env.example API/.env
+# Editar .env com os valores do RDS + Secrets Manager
+docker compose -f compose.prod.yml up -d
+```
+
+---
+
+## Custos (estimativa, us-east-1)
+
+| Serviço | Custo mensal |
+|---------|-------------|
+| ECS Fargate 2vCPU/6GB 24/7 | ~US$ 70 |
+| RDS free tier | ~US$ 0 (1º ano) |
+| ALB | ~US$ 16 |
+| App Runner (sob demanda) | ~US$ 30 |
+| Lambda (sob demanda) | ~US$ 5-20 |
+| EC2 t3.large | ~US$ 60 |
+
+**Dica:** Para projetos pessoais, rode sob demanda (desired count 0). Subir leva ~1 min.
+
+---
+
+## Verificação pós-deploy
+
+```bash
+# Health check
+curl https://<endpoint>/health
+# → {"status":"ok","version":"0.1.0","debug":false}
+
+# Health check do banco
+curl https://<endpoint>/health/db
+# → {"status":"ok","database":"ok"}
+
+# Readiness (Kubernetes/ECS)
+curl https://<endpoint>/health/ready
+# → {"status":"ready"}
+```
+
+---
+
+## Evoluções futuras
+
+- **S3** para áudios (hoje apaga após transcrever)
+- **Celery + Redis (ElastiCache/SQS)** para transcrição assíncrona
+- **Alembic** para migrações do banco
+- **CloudFront** para CDN dos assets estáticos
+- **WAF** para proteção contra ataques

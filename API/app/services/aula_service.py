@@ -1,7 +1,4 @@
-# Orquestrador do fluxo (Etapas 3+4+5): salvar áudio -> transcrever ->
-# persistir com origem marcada -> gerar flashcards -> persistir.
-# Fica num serviço pra que tanto a API JSON (/docs) quanto as telas (Etapa 6)
-# usem exatamente o mesmo caminho de código.
+import logging
 import uuid
 from pathlib import Path
 
@@ -12,20 +9,23 @@ from app.config import settings
 from app.models import Aula, Flashcard, Origem, Transcricao
 from app.services import flashcard_service, whisper_service
 
+logger = logging.getLogger("mnemo.aula")
+
 EXTENSOES_ACEITAS = {".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm", ".flac"}
 TITULO_PADRAO = "Aula sem título"
 
 
 def salvar_audio(arquivo: UploadFile) -> Path:
-    """Salva o upload em storage/ com nome único e devolve o caminho."""
     sufixo = Path(arquivo.filename or "audio").suffix.lower()
     if sufixo not in EXTENSOES_ACEITAS:
         raise ValueError(f"Formato não suportado: {sufixo or '(sem extensão)'}")
-    destino = Path(settings.storage_dir) / f"{uuid.uuid4().hex}{sufixo}"
+
+    nome = f"{uuid.uuid4().hex}{sufixo}"
+    destino = Path(settings.storage_dir) / nome
     destino.parent.mkdir(parents=True, exist_ok=True)
 
-    # Limite de tamanho verificado DURANTE o streaming (não depois): um upload
-    # gigante é cortado no ato, sem nunca ocupar o disco inteiro.
+    logger.info("Salvando áudio: %s -> %s (%s)", arquivo.filename, nome, arquivo.content_type)
+
     limite_bytes = settings.max_upload_mb * 1024 * 1024
     total = 0
     try:
@@ -38,19 +38,26 @@ def salvar_audio(arquivo: UploadFile) -> Path:
                     )
                 f.write(pedaco)
     except ValueError:
-        destino.unlink(missing_ok=True)  # não deixa o parcial pra trás
+        destino.unlink(missing_ok=True)
         raise
+
+    logger.info("Áudio salvo: %s (%.1f MB)", nome, total / (1024 * 1024))
     return destino
 
 
 def criar_aula_com_transcricao(db: Session, caminho_audio: Path, titulo: str | None) -> Aula:
-    """Etapas 3+4: transcreve o áudio e persiste aula + transcrição (origem=PROFESSOR)."""
+    logger.info("Iniciando transcrição de %s", caminho_audio.name)
     try:
         resultado = whisper_service.transcrever(str(caminho_audio))
     finally:
-        # O áudio é temporário (a transcrição é a fonte de verdade que persiste);
-        # sem essa limpeza, storage/ cresce sem limite a cada upload.
         caminho_audio.unlink(missing_ok=True)
+
+    logger.info(
+        "Transcrição concluída: %d palavras, idioma=%s, duração=%ds",
+        len(resultado["texto"].split()),
+        resultado["idioma"],
+        resultado["duracao_segundos"] or 0,
+    )
 
     aula = Aula(
         titulo=titulo or TITULO_PADRAO,
@@ -59,22 +66,22 @@ def criar_aula_com_transcricao(db: Session, caminho_audio: Path, titulo: str | N
     aula.transcricao = Transcricao(
         texto=resultado["texto"],
         idioma=resultado["idioma"],
-        origem=Origem.PROFESSOR,  # a regra da fonte, gravada no dado
+        origem=Origem.PROFESSOR,
     )
     db.add(aula)
     db.commit()
     db.refresh(aula)
+    logger.info("Aula #%d criada com transcrição", aula.id)
     return aula
 
 
 def gerar_e_salvar_flashcards(db: Session, aula: Aula) -> Aula:
-    """Etapa 5: gera flashcards a partir da transcrição salva e persiste."""
     if aula.transcricao is None or not aula.transcricao.texto.strip():
         raise ValueError("A aula não tem transcrição para gerar flashcards.")
 
+    logger.info("Gerando flashcards para aula #%d via %s", aula.id, settings.anthropic_model)
     deck = flashcard_service.gerar_flashcards(aula.transcricao.texto)
 
-    # A IA infere título/matéria; só sobrescreve se o usuário não deu um título.
     if aula.titulo == TITULO_PADRAO and deck.titulo:
         aula.titulo = deck.titulo
     aula.materia = deck.materia
@@ -87,10 +94,15 @@ def gerar_e_salvar_flashcards(db: Session, aula: Aula) -> Aula:
                 pergunta=carta.pergunta,
                 resposta=carta.resposta,
                 explicacao=carta.explicacao,
-                # Derivados da fala do professor => origem PROFESSOR (SDD §5).
                 origem=Origem.PROFESSOR,
             )
         )
     db.commit()
     db.refresh(aula)
+    logger.info(
+        "Flashcards gerados: %d cartões para aula #%d (%s)",
+        len(deck.flashcards),
+        aula.id,
+        deck.materia,
+    )
     return aula

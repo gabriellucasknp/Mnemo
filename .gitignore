@@ -1,4 +1,4 @@
-# Ambiente virtual local (existe só pro editor; não vai pro git nem pro Docker)
+# Ambiente virtual local
 venv/
 API/venv/
 
@@ -6,16 +6,25 @@ API/venv/
 __pycache__/
 *.pyc
 
-# Variáveis de ambiente sensíveis (pra quando você usar .env no futuro)
+# Variáveis de ambiente sensíveis
 .env
+.env.local
+.env.*.local
 
-# Áudios enviados: guarda a pasta, ignora o conteúdo
+# Áudios enviados
 API/storage/*
 !API/storage/.gitkeep
 
-# Modelos do Whisper baixados em cache (pesados)
+# Modelos do Whisper em cache
 **/.cache/whisper/
 
-# Configs locais de ferramentas (por máquina)
+# Configs locais de ferramentas
 .claude/
 .agent/
+
+# Data lake (gerado pelo pipeline)
+pipeline/data/
+
+# Modelos ML treinados
+API/app/ml/models/*.pkl
+API/training_data.json

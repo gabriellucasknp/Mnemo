@@ -9,6 +9,7 @@
     "cpuArchitecture": "X86_64"
   },
   "executionRoleArn": "arn:aws:iam::<ACCOUNT>:role/mnemoTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<ACCOUNT>:role/mnemoTaskRole",
   "containerDefinitions": [
     {
       "name": "api",
@@ -17,7 +18,10 @@
       "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
       "environment": [
         { "name": "WHISPER_MODEL", "value": "base" },
-        { "name": "ANTHROPIC_MODEL", "value": "claude-opus-4-8" }
+        { "name": "ANTHROPIC_MODEL", "value": "claude-sonnet-4-20250514" },
+        { "name": "DEBUG", "value": "false" },
+        { "name": "LOG_LEVEL", "value": "INFO" },
+        { "name": "MAX_UPLOAD_MB", "value": "200" }
       ],
       "secrets": [
         {
@@ -49,6 +53,9 @@
           "awslogs-stream-prefix": "api",
           "awslogs-create-group": "true"
         }
+      },
+      "linuxParameters": {
+        "initProcessEnabled": true
       }
     }
   ]

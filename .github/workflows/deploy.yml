@@ -1,21 +1,3 @@
-# CD — deploy na AWS a cada push na main (depois que os testes passam).
-# Fluxo: testes -> build da imagem prod -> scan de vulnerabilidades (Trivy)
-#        -> push pro ECR -> nova task definition com a TAG DO COMMIT -> ECS.
-#
-# Tag imutável: cada deploy publica :SHA (além de :latest). A task definition
-# aponta pro SHA exato — rollback = redeployar a task definition anterior,
-# sem depender do que ":latest" significa naquele momento.
-#
-# Autenticação SEM chave gravada: OIDC. O GitHub prova ao AWS IAM "este job
-# veio do repo X, branch main" e assume uma role — nenhum segredo de longa
-# duração no GitHub. Setup da role: deploy/aws.md, seção "GitHub Actions".
-#
-# Variáveis a configurar no repo (Settings -> Secrets and variables -> Actions):
-#   vars.AWS_REGION          ex.: us-east-1
-#   vars.ECS_CLUSTER         ex.: mnemo
-#   vars.ECS_SERVICE         ex.: mnemo-api
-#   vars.ECS_TASK_FAMILY     ex.: mnemo-api (família da task definition)
-#   secrets.AWS_ROLE_ARN     arn:aws:iam::<conta>:role/mnemo-github-deploy
 name: Deploy AWS
 
 on:
@@ -23,7 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write   # necessário pro OIDC (assumir a role na AWS)
+  id-token: write
   contents: read
 
 concurrency:
@@ -47,7 +29,7 @@ jobs:
           pip install -r requirements.txt
       - name: Rodar testes
         working-directory: API
-        run: python -m pytest tests -v
+        run: python -m pytest tests -v --tb=short
 
   deploy:
     needs: tests
@@ -75,8 +57,6 @@ jobs:
             -t $IMAGE:${{ github.sha }} -t $IMAGE:latest ./API
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
-      # Portão de segurança: a imagem só sobe pro ECR se não tiver
-      # vulnerabilidade CRÍTICA com correção disponível.
       - name: Scan de vulnerabilidades (Trivy)
         uses: aquasecurity/trivy-action@0.29.0
         with:
@@ -90,8 +70,6 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      # Parte da task definition ATUAL registrada no ECS (com os ARNs de
-      # secrets/roles reais) e troca só a imagem pela tag do commit.
       - name: Baixar task definition atual
         run: |
           aws ecs describe-task-definition \

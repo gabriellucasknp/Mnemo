@@ -1,23 +1,38 @@
-# Router de HEALTH (Etapa 1).
-# GET /health: "está vivo?" — usado pelo healthcheck do Docker e, na AWS,
-# pelo health check do load balancer / App Runner.
-# GET /health/db: "consegue falar com o banco?" — separado de propósito, pra
-# API continuar respondendo "viva" mesmo se o Postgres cair.
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
+
+logger = logging.getLogger("mnemo.health")
 
 router = APIRouter()
 
 
 @router.get("/health")
 def check_health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "0.1.0", "debug": settings.debug}
 
 
 @router.get("/health/db")
 def check_health_db(db: Session = Depends(get_db)):
-    db.execute(text("SELECT 1"))
-    return {"status": "ok", "database": "ok"}
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "ok"}
+    except Exception:
+        logger.exception("Health check do banco falhou")
+        return {"status": "degraded", "database": "error"}
+
+
+@router.get("/health/ready")
+def readiness(db: Session = Depends(get_db)):
+    """Readiness probe: pronto pra receber tráfego?"""
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ready"}
+    except Exception:
+        logger.warning("Readiness check falhou")
+        return {"status": "not_ready"}
