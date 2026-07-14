@@ -1,10 +1,5 @@
-# Router de TRANSCRIÇÃO (Etapa 3 + Etapa 4).
-# Recebe o upload do áudio (multipart/form-data), salva em storage/,
-# chama o whisper_service e PERSISTE a transcrição com a origem marcada.
-# Teste tudo pelo /docs — não precisa de tela nenhuma.
-#
-# Nota da Etapa 3 (assumida de propósito): o Whisper demora, então a requisição
-# fica "pensando" um tempo. É isso que o Celery vai resolver numa fase futura.
+import logging
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
@@ -12,6 +7,8 @@ from app.database import get_db
 from app.models import Aula
 from app.schemas import AulaDetalheOut, AulaOut
 from app.services import aula_service
+
+logger = logging.getLogger("mnemo.api")
 
 router = APIRouter(prefix="/api", tags=["aulas"])
 
@@ -22,7 +19,6 @@ def enviar_aula(
     titulo: str | None = Form(default=None),
     db: Session = Depends(get_db),
 ):
-    """Sobe um áudio, transcreve com Whisper e salva aula + transcrição."""
     try:
         caminho = aula_service.salvar_audio(audio)
     except ValueError as e:
@@ -41,3 +37,14 @@ def detalhar_aula(aula_id: int, db: Session = Depends(get_db)):
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")
     return aula
+
+
+@router.delete("/aulas/{aula_id}", status_code=204)
+def deletar_aula(aula_id: int, db: Session = Depends(get_db)):
+    aula = db.get(Aula, aula_id)
+    if aula is None:
+        raise HTTPException(status_code=404, detail="Aula não encontrada")
+    titulo = aula.titulo
+    db.delete(aula)
+    db.commit()
+    logger.info("Aula #%d '%s' removida", aula_id, titulo)

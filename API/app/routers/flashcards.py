@@ -1,7 +1,5 @@
-# Router de FLASHCARDS (Etapa 5).
-# A partir de uma transcrição SALVA, dispara a geração dos pares
-# pergunta/resposta (flashcard_service) e os persiste, ligados à aula
-# de origem e com a origem marcada.
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -10,12 +8,13 @@ from app.models import Aula
 from app.schemas import AulaDetalheOut, FlashcardOut
 from app.services import aula_service
 
+logger = logging.getLogger("mnemo.api")
+
 router = APIRouter(prefix="/api", tags=["flashcards"])
 
 
 @router.post("/aulas/{aula_id}/flashcards", response_model=AulaDetalheOut, status_code=201)
 def gerar_flashcards(aula_id: int, db: Session = Depends(get_db)):
-    """Gera e salva flashcards a partir da transcrição da aula."""
     aula = db.get(Aula, aula_id)
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")

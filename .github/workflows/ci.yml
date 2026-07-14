@@ -1,5 +1,3 @@
-# CI — roda a suíte de testes em todo push e pull request.
-# É o portão: o deploy (deploy.yml) só acontece se isto passar.
 name: CI
 
 on:
@@ -18,8 +16,6 @@ jobs:
           cache: pip
           cache-dependency-path: API/requirements.txt
 
-      # Torch CPU-only: mesma otimização do Dockerfile (sem ela o runner
-      # baixa ~5 GB de CUDA à toa e o CI fica minutos mais lento).
       - name: Instalar dependências
         working-directory: API
         run: |
@@ -28,12 +24,8 @@ jobs:
 
       - name: Rodar testes
         working-directory: API
-        run: python -m pytest tests -v
+        run: python -m pytest tests -v --tb=short
 
-  # Auditoria de segurança das dependências (CVEs conhecidos no PyPI).
-  # continue-on-error: informativo por enquanto — torch/whisper às vezes
-  # carregam CVEs sem correção publicada; não queremos travar todo push
-  # por algo fora do nosso controle. O log fica visível em cada execução.
   security-audit:
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -42,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: pip-audit nas dependências da API
+      - name: pip-audit
         run: |
           pip install pip-audit
           pip-audit -r API/requirements.txt --skip-editable

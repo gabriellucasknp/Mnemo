@@ -1,10 +1,3 @@
-# Infra compartilhada dos testes.
-#
-# Estratégia: testar a API de verdade (rotas -> serviços -> banco), trocando
-# só as bordas caras/externas:
-#   - Postgres  -> SQLite em memória (mesmo ORM, zero dependência de container)
-#   - Whisper   -> mock (transcrever um áudio real levaria minutos)
-#   - Anthropic -> mock (sem custo de API nem rede nos testes)
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -28,7 +21,6 @@ SessionTeste = sessionmaker(bind=engine_teste, autocommit=False, autoflush=False
 
 @pytest.fixture()
 def db():
-    """Banco limpo por teste: cria as tabelas antes, derruba depois."""
     Base.metadata.create_all(bind=engine_teste)
     sessao = SessionTeste()
     try:
@@ -40,20 +32,16 @@ def db():
 
 @pytest.fixture()
 def client(db):
-    """TestClient com o get_db apontando pro SQLite de teste."""
-
     def get_db_teste():
         yield db
 
     app.dependency_overrides[get_db] = get_db_teste
-    # Sem `with`: o lifespan (create_all no Postgres) não roda.
     yield TestClient(app)
     app.dependency_overrides.clear()
 
 
 @pytest.fixture()
 def storage_temporario(tmp_path, monkeypatch):
-    """Uploads dos testes vão pra uma pasta temporária, não pra storage/."""
     monkeypatch.setattr(settings, "storage_dir", str(tmp_path))
     return tmp_path
 
@@ -67,7 +55,6 @@ TRANSCRICAO_FAKE = {
 
 @pytest.fixture()
 def whisper_mockado(monkeypatch):
-    """Substitui o Whisper por uma transcrição instantânea e conhecida."""
     chamadas = []
 
     def transcrever_fake(caminho_audio: str) -> dict:
@@ -94,13 +81,24 @@ DECK_FAKE = DeckGerado(
             resposta="A respiração celular.",
             explicacao="Segundo a fala do professor.",
         ),
+        FlashcardGerado(
+            categoria="exemplo",
+            pergunta="Quais organelas realizam respiração celular?",
+            resposta="As mitocôndrias.",
+            explicacao=None,
+        ),
+        FlashcardGerado(
+            categoria="processo",
+            pergunta="Como funciona a respiração celular?",
+            resposta="A mitocôndria converte nutrientes em energia.",
+            explicacao="Processo aeróbico.",
+        ),
     ],
 )
 
 
 @pytest.fixture()
 def ia_mockada(monkeypatch):
-    """Substitui a chamada à Anthropic por um deck fixo e válido."""
     monkeypatch.setattr(
         aula_service.flashcard_service,
         "gerar_flashcards",

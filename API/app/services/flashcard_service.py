@@ -1,11 +1,4 @@
-# Serviço de GERAÇÃO DE FLASHCARDS com IA (Etapa 5).
-# Decisão tomada: modelo VIA API (Anthropic / Claude), não local.
-#
-# Os dois conceitos-chave da etapa, materializados aqui:
-# (a) o PROMPT molda o que sai -> instruções explícitas em PT-BR, com a regra
-#     da fonte (SDD §5): os cartões devem refletir SOMENTE o que o professor disse.
-# (b) a saída precisa ser ESTRUTURADA -> usamos `client.messages.parse()` com um
-#     schema Pydantic: a API garante JSON válido e o SDK valida e devolve objetos.
+import logging
 from typing import Literal
 
 import anthropic
@@ -13,8 +6,9 @@ from pydantic import BaseModel, Field
 
 from app.config import settings
 
+logger = logging.getLogger("mnemo.flashcard")
 
-# --- Schema da saída estruturada (o que a IA é OBRIGADA a devolver) ---
+
 class FlashcardGerado(BaseModel):
     categoria: Literal["conceito", "definição", "processo", "exemplo"] = Field(
         description="Tipo do cartão"
@@ -45,9 +39,6 @@ Diretrizes:
 - Respostas curtas (1-3 frases); use "explicacao" para contexto extra quando ajudar.
 - Classifique cada cartão em: conceito, definição, processo ou exemplo."""
 
-
-# Cliente criado uma vez e reutilizado (mesmo padrão do modelo Whisper):
-# o SDK mantém pool de conexões HTTP — recriar a cada chamada joga isso fora.
 _client: anthropic.Anthropic | None = None
 
 
@@ -59,11 +50,15 @@ def _get_client() -> anthropic.Anthropic:
 
 
 def gerar_flashcards(texto_transcricao: str) -> DeckGerado:
-    """Manda a transcrição pro Claude e devolve o deck estruturado e validado."""
+    logger.info(
+        "Enviando transcrição (%d chars) para %s",
+        len(texto_transcricao),
+        settings.anthropic_model,
+    )
     response = _get_client().messages.parse(
         model=settings.anthropic_model,
         max_tokens=16000,
-        thinking={"type": "adaptive"},  # o modelo decide quanto "pensar"
+        thinking={"type": "adaptive"},
         system=_SYSTEM,
         messages=[
             {
@@ -74,9 +69,16 @@ def gerar_flashcards(texto_transcricao: str) -> DeckGerado:
                 ),
             }
         ],
-        output_format=DeckGerado,  # saída estruturada: JSON garantido pelo schema
+        output_format=DeckGerado,
     )
     deck = response.parsed_output
     if deck is None:
+        logger.error("Anthropic não retornou formato válido")
         raise RuntimeError("A IA não devolveu flashcards no formato esperado.")
+    logger.info(
+        "Deck gerado: %d flashcards, materia=%s, titulo=%s",
+        len(deck.flashcards),
+        deck.materia,
+        deck.titulo,
+    )
     return deck
