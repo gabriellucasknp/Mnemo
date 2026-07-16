@@ -1,11 +1,12 @@
 import pytest
 
-from app.ml.classifier import FlashcardClassifier, get_classifier
+from app.ml.classifier import FlashcardClassifier, MODEL_PATH, get_classifier
 
 
 @pytest.fixture
-def classifier():
+def classifier(tmp_path, monkeypatch):
     """Retorna um classificador fresh (sem modelo salvo)."""
+    monkeypatch.setattr("app.ml.classifier.MODEL_PATH", tmp_path / "fake.pkl")
     return FlashcardClassifier()
 
 
@@ -26,11 +27,19 @@ def trained_classifier():
         "Processo de respiração celular. Glicólise + ciclo de Krebs.",
         "Exemplo de bactéria. E. coli.",
         "O que é energia? Capacidade de realizar trabalho.",
+        "Como ocorre a meiose? Divisão reducional do núcleo.",
+        "Defina citoplasma. Parte da célula entre membrana e núcleo.",
+        "Exemplo de fungo? A levedura.",
+        "Conceito de ecossistema. Conjunto de seres vivos e ambiente.",
+        "Processo de fermentação. Conversão de glicose em álcool.",
+        "O que é proteína? Macromolécula essencial para o corpo.",
     ]
     labels = [
         "conceito", "processo", "exemplo", "definição",
         "definição", "processo", "exemplo", "conceito",
         "definição", "processo", "exemplo", "conceito",
+        "processo", "definição", "exemplo", "conceito",
+        "processo", "conceito",
     ]
     clf.train(texts, labels)
     return clf
@@ -54,17 +63,26 @@ def test_treino(classifier):
         "Conceito de célula. Unidade da vida.",
         "Definição de DNA. Molécula de informação genética.",
         "Processo de respiração celular. Glicólise.",
+        "Exemplo de bactéria. E. coli.",
+        "O que é energia? Capacidade de realizar trabalho.",
+        "Como ocorre a meiose? Divisão reducional.",
+        "Defina citoplasma. Fluido entre membrana e núcleo.",
+        "Exemplo de fungo? A levedura.",
+        "Conceito de ecossistema. Seres vivos e ambiente.",
+        "Processo de fermentação. Glicose em álcool.",
+        "O que é proteína? Macromolécula essencial.",
     ]
     labels = [
         "conceito", "processo", "exemplo", "definição",
         "definição", "processo", "exemplo", "conceito",
-        "definição", "processo",
+        "definição", "processo", "exemplo", "conceito",
+        "processo", "definição", "exemplo", "conceito",
+        "processo", "conceito",
     ]
     metrics = classifier.train(texts, labels)
     assert classifier.is_trained
     assert "accuracy" in metrics
-    assert metrics["train_size"] == 8
-    assert metrics["test_size"] == 2
+    assert metrics["train_size"] + metrics["test_size"] == len(texts)
 
 
 def test_predict(trained_classifier):

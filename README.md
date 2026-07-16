@@ -29,14 +29,14 @@ A fala do professor é a fonte de verdade — todo dado carrega sua origem marca
                          PostgreSQL ◀────── PySpark (medallion) ──▶ analytics
 ```
 
-**Stack:** FastAPI · PostgreSQL · SQLAlchemy · Whisper · Anthropic API · PySpark · Docker · GitHub Actions · AWS ECS Fargate
+**Stack:** FastAPI · PostgreSQL · SQLAlchemy · Whisper · Google Gemini · PySpark · Docker · GitHub Actions · AWS ECS Fargate
 
 Contexto e decisões: [sdd.md](sdd.md) · [plano de execução.md](plano%20de%20execução.md)
 
 ## 🚀 Rodar (desenvolvimento)
 
 ```bash
-cp API/.env.example API/.env   # e preencha ANTHROPIC_API_KEY
+cp API/.env.example API/.env   # e preencha GEMINI_API_KEY
 docker compose up --build
 ```
 
@@ -82,7 +82,7 @@ SELECT * FROM analytics.resumo_materias;
 ## 🏭 Ensaio de produção (local)
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-... docker compose -f compose.prod.yml up --build
+GEMINI_API_KEY=AIza-... docker compose -f compose.prod.yml up --build
 ```
 
 Sobe a imagem fechada (target `prod` do [Dockerfile](API/Dockerfile)): sem

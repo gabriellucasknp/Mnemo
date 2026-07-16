@@ -18,7 +18,7 @@
       "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
       "environment": [
         { "name": "WHISPER_MODEL", "value": "base" },
-        { "name": "ANTHROPIC_MODEL", "value": "claude-sonnet-4-20250514" },
+        { "name": "GEMINI_MODEL", "value": "gemini-2.0-flash" },
         { "name": "DEBUG", "value": "false" },
         { "name": "LOG_LEVEL", "value": "INFO" },
         { "name": "MAX_UPLOAD_MB", "value": "200" }
@@ -29,8 +29,8 @@
           "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT>:secret:mnemo/database-url"
         },
         {
-          "name": "ANTHROPIC_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT>:secret:mnemo/anthropic-api-key"
+          "name": "GEMINI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT>:secret:mnemo/gemini-api-key"
         }
       ],
       "healthCheck": {

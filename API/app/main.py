@@ -119,12 +119,12 @@ if settings.debug:
         """Mostra config ativa (SEM expor chaves sensíveis)."""
         return {
             "whisper_model": settings.whisper_model,
-            "anthropic_model": settings.anthropic_model,
+            "gemini_model": settings.gemini_model,
             "max_upload_mb": settings.max_upload_mb,
             "storage_dir": settings.storage_dir,
             "debug": settings.debug,
             "log_level": settings.log_level,
-            "anthropic_key_set": bool(settings.anthropic_api_key),
+            "gemini_key_set": bool(settings.gemini_api_key),
             "database_configured": "postgresql" in settings.database_url,
         }
 

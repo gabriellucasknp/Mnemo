@@ -79,7 +79,7 @@ def gerar_e_salvar_flashcards(db: Session, aula: Aula) -> Aula:
     if aula.transcricao is None or not aula.transcricao.texto.strip():
         raise ValueError("A aula não tem transcrição para gerar flashcards.")
 
-    logger.info("Gerando flashcards para aula #%d via %s", aula.id, settings.anthropic_model)
+    logger.info("Gerando flashcards para aula #%d via %s", aula.id, settings.gemini_model)
     deck = flashcard_service.gerar_flashcards(aula.transcricao.texto)
 
     if aula.titulo == TITULO_PADRAO and deck.titulo:

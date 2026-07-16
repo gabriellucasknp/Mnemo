@@ -62,8 +62,8 @@ postgresql+psycopg://mnemo:<senha>@<endpoint>:5432/mnemo
 aws secretsmanager create-secret --name mnemo/database-url \
   --secret-string 'postgresql+psycopg://mnemo:<senha>@<endpoint>:5432/mnemo'
 
-aws secretsmanager create-secret --name mnemo/anthropic-api-key \
-  --secret-string 'sk-ant-...'
+aws secretsmanager create-secret --name mnemo/gemini-api-key \
+  --secret-string 'AIza...'
 ```
 
 ### Passo 4: ECS

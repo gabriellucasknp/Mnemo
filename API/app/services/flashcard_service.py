@@ -1,7 +1,9 @@
+import json
 import logging
 from typing import Literal
 
-import anthropic
+from google import genai
+from google.genai import types
 from pydantic import BaseModel, Field
 
 from app.config import settings
@@ -39,42 +41,48 @@ Diretrizes:
 - Respostas curtas (1-3 frases); use "explicacao" para contexto extra quando ajudar.
 - Classifique cada cartão em: conceito, definição, processo ou exemplo."""
 
-_client: anthropic.Anthropic | None = None
 
-
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
-    return _client
+def _get_client() -> genai.Client:
+    return genai.Client(api_key=settings.gemini_api_key or None)
 
 
 def gerar_flashcards(texto_transcricao: str) -> DeckGerado:
+    client = _get_client()
     logger.info(
         "Enviando transcrição (%d chars) para %s",
         len(texto_transcricao),
-        settings.anthropic_model,
+        settings.gemini_model,
     )
-    response = _get_client().messages.parse(
-        model=settings.anthropic_model,
-        max_tokens=16000,
-        thinking={"type": "adaptive"},
-        system=_SYSTEM,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    "Gere os flashcards desta transcrição de aula:\n\n"
-                    f"<transcricao>\n{texto_transcricao}\n</transcricao>"
-                ),
-            }
-        ],
-        output_format=DeckGerado,
+
+    prompt = (
+        "Gere os flashcards desta transcrição de aula e retorne APENAS um JSON "
+        "válido com a estrutura: "
+        '{"titulo": "...", "materia": "...", "flashcards": ['
+        '{"categoria": "conceito|definição|processo|exemplo", '
+        '"pergunta": "...", "resposta": "...", "explicacao": "... ou null"}'
+        "]}\n\n"
+        f"<transcricao>\n{texto_transcricao}\n</transcricao>"
     )
-    deck = response.parsed_output
-    if deck is None:
-        logger.error("Anthropic não retornou formato válido")
-        raise RuntimeError("A IA não devolveu flashcards no formato esperado.")
+
+    response = client.models.generate_content(
+        model=settings.gemini_model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=_SYSTEM,
+            response_mime_type="application/json",
+            temperature=0.7,
+            max_output_tokens=16000,
+        ),
+    )
+
+    try:
+        raw = response.text
+        deck_dict = json.loads(raw)
+        deck = DeckGerado(**deck_dict)
+    except (json.JSONDecodeError, KeyError, Exception) as e:
+        logger.error("Gemini não retornou formato válido: %s", e)
+        raise RuntimeError("A IA não devolveu flashcards no formato esperado.") from e
+
     logger.info(
         "Deck gerado: %d flashcards, materia=%s, titulo=%s",
         len(deck.flashcards),
