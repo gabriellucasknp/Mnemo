@@ -25,8 +25,9 @@ jobs:
       - name: Instalar dependências
         working-directory: API
         run: |
+          pip install --upgrade pip "setuptools<71" wheel
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
+          pip install --no-build-isolation -r requirements.txt
       - name: Rodar testes
         working-directory: API
         run: python -m pytest tests -v --tb=short
