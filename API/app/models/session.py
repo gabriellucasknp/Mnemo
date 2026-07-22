@@ -20,10 +20,13 @@ class Aula(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    # Relações: uma aula tem UMA transcrição (MVP) e N flashcards.
+    # Relações: uma aula tem UMA transcrição (MVP), N flashcards e M simulados.
     transcricao = relationship(
         "Transcricao", back_populates="aula", uselist=False, cascade="all, delete-orphan"
     )
     flashcards = relationship(
         "Flashcard", back_populates="aula", cascade="all, delete-orphan"
+    )
+    simulados = relationship(
+        "Simulado", back_populates="aula", cascade="all, delete-orphan"
     )

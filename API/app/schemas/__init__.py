@@ -42,3 +42,30 @@ class AulaOut(BaseModel):
 class AulaDetalheOut(AulaOut):
     transcricao: TranscricaoOut | None = None
     flashcards: list[FlashcardOut] = []
+
+
+class SimuladoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    titulo: str
+    materia: str | None
+    quantidade_questoes: int
+    dificuldade: str
+    aula_id: int | None
+    criada_em: datetime
+
+
+class QuestaoSimuladoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    enunciado: str
+    alternativas: dict
+    explicacao: str | None
+    dificuldade: str
+    disciplina: str | None
+
+
+class SimuladoDetalheOut(SimuladoOut):
+    questoes: list[QuestaoSimuladoOut] = []

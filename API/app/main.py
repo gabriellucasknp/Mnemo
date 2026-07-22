@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import flashcards, health, ml, pages, transcription
+from app.routers import flashcards, health, ml, ml_questoes, pages, simulados, transcription
 
 import app.models  # noqa: F401
 
@@ -135,4 +135,6 @@ app.include_router(health.router)
 app.include_router(transcription.router)
 app.include_router(flashcards.router)
 app.include_router(ml.router)
+app.include_router(ml_questoes.router)
+app.include_router(simulados.router)
 app.include_router(pages.router)
