@@ -28,3 +28,6 @@ pipeline/data/
 # Modelos ML treinados
 API/app/ml/models/*.pkl
 API/training_data.json
+
+# Dataset ENEM (dados de treino ocultos)
+API/app/ml/data/*.json

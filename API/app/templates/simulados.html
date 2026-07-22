@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% set nav = 'simulados' %}
+{% block title %}Mnemo — Simulados{% endblock %}
+
+{% block content %}
+<div class="page page-simulados">
+  <header class="page-head">
+    <h1>Simulados</h1>
+    <p class="sub">Teste seus conhecimentos com questões no estilo ENEM</p>
+  </header>
+
+  {% if erro %}
+  <div class="alerta">⚠️ {{ erro }}</div>
+  {% endif %}
+
+  <!-- Criar novo simulado -->
+  <section class="simulado-criar">
+    <h2 class="section-title">Criar novo simulado</h2>
+    {% if aulas %}
+    <form action="/simulados/criar" method="post" class="form-simulado">
+      <div class="form-row">
+        <label class="form-label">Aula base</label>
+        <select name="aula_id" class="campo-select" required>
+          <option value="">Selecione uma aula...</option>
+          {% for a in aulas %}
+          <option value="{{ a.id }}">{{ a.materia or 'Aula' }} — {{ a.titulo }} ({{ a.flashcards | length }} flashcards)</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Título (opcional)</label>
+        <input class="campo-titulo" type="text" name="titulo" maxlength="255"
+               placeholder="Ex: Simulado de Biologia — Células">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">Quantidade de questões</label>
+        <select name="quantidade" class="campo-select">
+          <option value="5">5 questões</option>
+          <option value="10" selected>10 questões</option>
+          <option value="15">15 questões</option>
+          <option value="20">20 questões</option>
+        </select>
+      </div>
+
+      <button class="cta" type="submit">Gerar simulado com IA</button>
+    </form>
+    {% else %}
+    <div class="alerta">
+      ⚠️ Você precisa ter pelo menos uma aula com flashcards para criar simulados.
+      <a class="link-suave" href="/">Enviar uma aula</a>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Simulados existentes -->
+  <section>
+    <h2 class="section-title">Seus simulados</h2>
+    {% if simulados %}
+    <div class="lista-simulados">
+      {% for s in simulados %}
+      <a class="simulado-item" href="/simulados/{{ s.id }}">
+        <span class="simulado-icone">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="simulado-info">
+          <span class="simulado-nome">{{ s.titulo }}</span>
+          <span class="simulado-meta">
+            {{ s.quantidade_questoes }} questões
+            {% if s.materia %} · {{ s.materia }}{% endif %}
+            · {{ s.criada_em.strftime('%d/%m/%Y') if s.criada_em else '' }}
+          </span>
+        </span>
+        <span class="seta">→</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="vazio">Nenhum simulado ainda. Crie o primeiro acima ✨</p>
+    {% endif %}
+  </section>
+</div>
+
+<!-- overlay de processamento -->
+<div class="processing" id="processing" hidden>
+  <div class="ring"><div class="ring-spinner"></div></div>
+  <div class="proc-steps">
+    <span class="proc-step" id="step-0">Analisando flashcards</span>
+    <span class="proc-step" id="step-1">Gerando questões</span>
+    <span class="proc-step" id="step-2">Avaliando qualidade</span>
+  </div>
+  <p class="proc-hint">A IA está criando questões personalizadas ✨</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelector('.form-simulado')?.addEventListener('submit', () => {
+    document.getElementById('processing').hidden = false;
+    let i = 0;
+    const passos = [0, 1, 2].map(n => document.getElementById('step-' + n));
+    passos[0].classList.add('ativo');
+    setInterval(() => {
+      if (i < passos.length - 1) {
+        passos[i].classList.replace('ativo', 'feito');
+        i++;
+        passos[i].classList.add('ativo');
+      }
+    }, 15000);
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% set nav = 'simulados' %}
+{% block title %}Mnemo — {{ simulado.titulo }}{% endblock %}
+
+{% block content %}
+<div class="page page-simulado-detalhe">
+
+  <!-- hero do simulado -->
+  <div class="hero hero-simulado">
+    <div class="hero-circulo"></div>
+    <div>
+      <div class="hero-materia">{{ simulado.materia or 'Simulado' }}</div>
+      <h1 class="hero-titulo">{{ simulado.titulo }}</h1>
+      <div class="hero-meta">
+        {{ simulado.quantidade_questoes }} questões
+        {% if simulado.materia %} · {{ simulado.materia }}{% endif %}
+        · {{ simulado.criada_em.strftime('%d/%m/%Y') if simulado.criada_em else '' }}
+      </div>
+    </div>
+    {% if simulado.questoes %}
+    <button class="hero-btn" id="btn-iniciar">Iniciar simulado</button>
+    {% endif %}
+  </div>
+
+  <!-- lista de questões (preview) -->
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">Questões</h2>
+      <span class="badge badge-ia">geradas por IA</span>
+    </div>
+
+    {% if simulado.questoes %}
+    <div class="lista-questoes">
+      {% for q in simulado.questoes %}
+      <div class="questao-preview">
+        <span class="questao-num">{{ loop.index }}</span>
+        <div class="questao-conteudo">
+          <p class="questao-enunciado">{{ q.enunciado[:200] }}{% if q.enunciado|length > 200 %}...{% endif %}</p>
+          <div class="questao-meta">
+            <span class="chip cat-{{ q.dificuldade }}">{{ q.dificuldade }}</span>
+            {% if q.disciplina %}<span class="chip">{{ q.disciplina }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="vazio">Nenhuma questão neste simulado.</p>
+    {% endif %}
+  </section>
+
+</div>
+
+<!-- ============ MODO SIMULADO (overlay) ============ -->
+{% if simulado.questoes %}
+<div class="simulado-overlay" id="simulado-overlay" hidden>
+  <div class="simulado-topo">
+    <span class="simulado-pos" id="simulado-pos">Questão 1/{{ simulado.questoes | length }}</span>
+    <div class="barra"><div class="barra-fill" id="barra-fill"></div></div>
+    <span class="simulado-timer" id="simulado-timer">00:00</span>
+    <button class="fechar" id="btn-fechar" title="Fechar">✕</button>
+  </div>
+
+  <div class="simulado-centro">
+    <div class="questao-card" id="questao-card">
+      <div class="questao-card-enunciado" id="questao-enunciado"></div>
+      <div class="questao-card-alternativas" id="questao-alternativas"></div>
+    </div>
+  </div>
+
+  <div class="simulado-rodape">
+    <button class="acao acao-anterior" id="btn-anterior" disabled>← Anterior</button>
+    <button class="cta" id="btn-proximo">Próxima →</button>
+  </div>
+</div>
+
+<!-- tela de resultado -->
+<div class="simulado-overlay resultado" id="resultado" hidden>
+  <div class="conc-icone">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#4C4DDC"/></svg>
+  </div>
+  <h2 class="conc-titulo">Simulado concluído!</h2>
+  <p class="conc-sub" id="resultado-sub"></p>
+  <div class="conc-placar">
+    <div class="placar placar-sim"><b id="placar-acertos">0</b><span>Acertos</span></div>
+    <div class="placar placar-nao"><b id="placar-erros">0</b><span>Erros</span></div>
+    <div class="placar placar-percentual"><b id="placar-percentual">0%</b><span>Aproveitamento</span></div>
+  </div>
+
+  <!-- revisão das questões -->
+  <section class="revisao" id="revisao-section" style="max-width:700px;width:100%;margin-top:24px;">
+    <h3 class="section-title" style="text-align:left;">Revisão</h3>
+    <div id="revisao-lista"></div>
+  </section>
+
+  <div style="display:flex;gap:16px;margin-top:20px;">
+    <button class="cta" id="btn-reiniciar">Refazer simulado</button>
+    <a class="link-suave" href="/simulados" style="align-self:center;">Voltar aos simulados</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if simulado.questoes %}
+<script>
+  const QUESTOES = [
+    {% for q in simulado.questoes %}
+    {
+      id: {{ q.id }},
+      enunciado: {{ q.enunciado | tojson }},
+      alternativas: {{ q.alternativas | tojson }},
+      explicacao: {{ (q.explicacao or '') | tojson }},
+      dificuldade: {{ q.dificuldade | tojson }}
+    }{{ "," if not loop.last }}
+    {% endfor %}
+  ];
+
+  const el = id => document.getElementById(id);
+  let idx = 0;
+  let respostas = {};
+  let timerInterval;
+  let segundos = 0;
+
+  function formatarTempo(s) {
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return m + ':' + sec;
+  }
+
+  function iniciarTimer() {
+    segundos = 0;
+    el('simulado-timer').textContent = '00:00';
+    timerInterval = setInterval(() => {
+      segundos++;
+      el('simulado-timer').textContent = formatarTempo(segundos);
+    }, 1000);
+  }
+
+  function pararTimer() {
+    clearInterval(timerInterval);
+  }
+
+  function renderQuestao() {
+    const q = QUESTOES[idx];
+    el('questao-enunciado').textContent = q.enunciado;
+    el('simulado-pos').textContent = `Questão ${idx + 1}/${QUESTOES.length}`;
+    el('barra-fill').style.width = Math.round((idx / QUESTOES.length) * 100) + '%';
+
+    const altsDiv = el('questao-alternativas');
+    altsDiv.innerHTML = '';
+
+    const letras = ['A', 'B', 'C', 'D', 'E'];
+    for (const letra of letras) {
+      const alt = q.alternativas[letra];
+      if (!alt) continue;
+
+      const btn = document.createElement('button');
+      btn.className = 'alternativa-btn' + (respostas[q.id] === letra ? ' selecionada' : '');
+      btn.innerHTML = `<span class="alt-letra">${letra}</span><span class="alt-texto">${alt}</span>`;
+      btn.addEventListener('click', () => {
+        respostas[q.id] = letra;
+        renderQuestao();
+      });
+      altsDiv.appendChild(btn);
+    }
+
+    el('btn-anterior').disabled = idx === 0;
+    el('btn-proximo').textContent = idx === QUESTOES.length - 1 ? 'Finalizar' : 'Próxima →';
+  }
+
+  function iniciarSimulado() {
+    idx = 0;
+    respostas = {};
+    el('resultado').hidden = true;
+    el('simulado-overlay').hidden = false;
+    iniciarTimer();
+    renderQuestao();
+  }
+
+  async function finalizarSimulado() {
+    pararTimer();
+
+    // Enviar respostas via API
+    try {
+      const response = await fetch(`/api/simulados/{{ simulado.id }}/responder`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({respostas: respostas})
+      });
+      const resultado = await response.json();
+
+      el('placar-acertos').textContent = resultado.acertadas;
+      el('placar-erros').textContent = resultado.erros;
+      el('placar-percentual').textContent = resultado.percentual + '%';
+      el('resultado-sub').textContent = `Você acertou ${resultado.acertadas} de ${resultado.total_questoes} questões em ${formatarTempo(segundos)}`;
+
+      // Montar revisão
+      const lista = el('revisao-lista');
+      lista.innerHTML = '';
+      for (const det of resultado.detalhes) {
+        const q = QUESTOES.find(q => q.id === det.questao_id);
+        if (!q) continue;
+        const div = document.createElement('div');
+        div.className = 'revisao-item ' + (det.acertou ? 'acertou' : 'errou');
+        div.innerHTML = `
+          <div class="revisao-header">
+            <span class="revisao-status">${det.acertou ? '✓ Acertou' : '✗ Errou'}</span>
+            <span class="revisao-gabarito">Gabarito: ${det.gabarito}${det.alternativa_marcada ? ' | Sua: ' + det.alternativa_marcada : ''}</span>
+          </div>
+          <p class="revisao-enunciado">${q.enunciado.substring(0, 150)}...</p>
+          ${det.explicacao ? '<p class="revisao-explicacao">' + det.explicacao + '</p>' : ''}
+        `;
+        lista.appendChild(div);
+      }
+
+      el('simulado-overlay').hidden = true;
+      el('resultado').hidden = false;
+    } catch (err) {
+      console.error('Erro ao enviar respostas:', err);
+      alert('Erro ao enviar respostas. Tente novamente.');
+    }
+  }
+
+  el('btn-iniciar').addEventListener('click', iniciarSimulado);
+  el('btn-reiniciar').addEventListener('click', iniciarSimulado);
+  el('btn-fechar').addEventListener('click', () => {
+    pararTimer();
+    el('simulado-overlay').hidden = true;
+  });
+  el('btn-anterior').addEventListener('click', () => {
+    if (idx > 0) { idx--; renderQuestao(); }
+  });
+  el('btn-proximo').addEventListener('click', () => {
+    if (idx < QUESTOES.length - 1) {
+      idx++;
+      renderQuestao();
+    } else {
+      finalizarSimulado();
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}
