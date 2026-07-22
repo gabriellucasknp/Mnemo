@@ -14,7 +14,7 @@ A fala do professor é a fonte de verdade — todo dado carrega sua origem marca
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 ![PySpark](https://img.shields.io/badge/PySpark-E25A1C?logo=apachespark&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-FF9900?logo=amazonwebservices&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
 
 </div>
 
@@ -29,7 +29,7 @@ A fala do professor é a fonte de verdade — todo dado carrega sua origem marca
                          PostgreSQL ◀────── PySpark (medallion) ──▶ analytics
 ```
 
-**Stack:** FastAPI · PostgreSQL · SQLAlchemy · Whisper · Google Gemini · PySpark · Docker · GitHub Actions · AWS ECS Fargate
+**Stack:** FastAPI · PostgreSQL · SQLAlchemy · Whisper · Google Gemini · PySpark · Docker · GitHub Actions
 
 Contexto e decisões: [sdd.md](sdd.md) · [plano de execução.md](plano%20de%20execução.md)
 
@@ -79,11 +79,4 @@ Consulta rápida depois de rodar:
 SELECT * FROM analytics.resumo_materias;
 ```
 
-## 🏭 Ensaio de produção (local)
 
-```bash
-GEMINI_API_KEY=AIza-... docker compose -f compose.prod.yml up --build
-```
-
-Sobe a imagem fechada (target `prod` do [Dockerfile](API/Dockerfile)): sem
-reload, usuário não-root, healthcheck, banco sem porta exposta.
