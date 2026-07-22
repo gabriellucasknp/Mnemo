@@ -125,7 +125,7 @@ def criar_simulado(req: CriarSimuladoRequest, db: Session = Depends(get_db)):
 @router.get("", response_model=list[SimuladoOut])
 def listar_simulados(db: Session = Depends(get_db)):
     simulados = (
-        db.query(Simulado).order_by(Simulado.criada_em.desc()).all()
+        db.query(Simulado).order_by(Simulado.criado_em.desc()).all()
     )
     return [_simulado_para_out(s) for s in simulados]
 
@@ -227,7 +227,7 @@ def _simulado_para_out(simulado: Simulado) -> SimuladoOut:
         quantidade_questoes=simulado.quantidade_questoes,
         dificuldade=simulado.dificuldade,
         aula_id=simulado.aula_id,
-        criado_em=str(simulado.criada_em) if simulado.criada_em else "",
+        criado_em=str(simulado.criado_em) if simulado.criado_em else "",
         questoes=questoes_out,
         total_acertadas=acertadas,
         total_respondidas=total_respostas,
