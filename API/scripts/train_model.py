@@ -5,7 +5,7 @@ Uso:
     python -m scripts.train_model [--batches N] [--data-file PATH]
 
 O script:
-1. Gera dados sintéticos via API da Anthropic (ou carrega de arquivo existente)
+1. Gera dados sintéticos via API do Gemini
 2. Combina com flashcards existentes do banco (se houver)
 3. Treina o classificador TF-IDF + LogisticRegression
 4. Salva o modelo em app/ml/models/flashcard_classifier.pkl

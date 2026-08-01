@@ -1,0 +1,44 @@
+# Blueprint do Render — deploy em um clique.
+#
+#   Serviço web único: o Dockerfile da raiz constrói o frontend Angular,
+#   a API e o nginx tudo numa imagem; o nginx escuta na $PORT do Render
+#   e faz proxy da API localmente (127.0.0.1:8000).
+#
+#   Banco: PostgreSQL gerenciado pelo Render (add-on "databases").
+#
+#   1) Conecte o repositório github.com/gabriellucasknp/Mnemo
+#   2) "New Blueprint Instance" e selecione este render.yaml
+#   3) Preencha GEMINI_API_KEY quando o Render pedir
+databases:
+  - name: mnemo-db
+    plan: basic-256mb
+    databaseName: mnemo
+    user: mnemo
+
+services:
+  - type: web
+    name: mnemo
+    runtime: docker
+    repo: https://github.com/gabriellucasknp/Mnemo.git
+    plan: starter
+    region: sao-paulo
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mnemo-db
+          property: connectionString
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: WHISPER_MODEL
+        value: base
+      - key: MAX_UPLOAD_MB
+        value: "200"
+      - key: DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO

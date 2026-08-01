@@ -1,0 +1,29 @@
+<div class="processing">
+  <div class="ring">
+    <div class="ring-spinner"></div>
+  </div>
+
+  @if (mostrarBarra && progresso > 0 && progresso < 100) {
+    <div class="barra-upload">
+      <div class="barra-upload-fill" [style.width.%]="progresso"></div>
+    </div>
+    <span class="barra-label">{{ progresso }}% enviado</span>
+  }
+
+  <div class="proc-steps">
+    <div class="proc-step-title">{{ titulo }}</div>
+    @for (passo of passos; track passo; let i = $index) {
+      <div
+        class="proc-step"
+        [class.ativo]="i === 0 && passos.length > 1"
+        [class.feito]="passos.length === 1"
+      >
+        {{ passo }}
+      </div>
+    }
+  </div>
+
+  <p class="proc-hint">
+    Isso pode levar alguns minutos dependendo do tamanho do áudio.
+  </p>
+</div>

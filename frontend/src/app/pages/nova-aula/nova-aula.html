@@ -1,0 +1,113 @@
+<div class="page animate-in">
+  <header class="page-head">
+    <h1>Nova aula</h1>
+    <p class="sub">Transforme sua próxima aula em flashcards</p>
+  </header>
+
+  @if (erro) {
+    <div class="alerta erro">
+      <span><app-icon name="warning" size="16" /> {{ erro }}</span>
+    </div>
+  }
+
+  <section class="card" style="margin-bottom: 28px">
+    <div
+      class="dropzone"
+      [class.selecionado]="arquivo"
+      [class.drag]="arrastando"
+      (click)="clicarDropzone()"
+      (dragover)="arrastando = true; $event.preventDefault()"
+      (dragleave)="arrastando = false"
+      (drop)="arrastando = false; aoSoltarArquivo($event)"
+    >
+      <input
+        #inputAudio
+        type="file"
+        name="audio"
+        accept=".mp3,.mp4,.wav,.m4a,.ogg,.webm,.flac"
+        hidden
+        (change)="aoSelecionarArquivo($event)"
+      />
+
+      @if (!arquivo) {
+        <span class="drop-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="drop-title">Arraste um arquivo aqui</span>
+        <span class="drop-hint">ou clique para procurar · MP3, MP4, WAV, M4A, OGG</span>
+      } @else {
+        <span class="drop-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M9 11l3 3L22 4" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="drop-title">{{ arquivo.name }}</span>
+        <span class="drop-hint">
+          {{ (arquivo.size / (1024 * 1024)).toFixed(1) }} MB · clique para trocar
+        </span>
+        <button class="cta cta-mini cta-danger" type="button" (click)="limparArquivo(); $event.stopPropagation()">
+          Remover arquivo
+        </button>
+      }
+    </div>
+
+    <div class="form-row mt-24">
+      <label class="form-label" for="titulo">Título da aula (opcional)</label>
+      <input
+        id="titulo"
+        class="campo"
+        type="text"
+        maxlength="255"
+        placeholder="A IA sugere um título se deixar vazio"
+        [(ngModel)]="titulo"
+        [disabled]="processando"
+      />
+    </div>
+
+    <button class="cta" type="button" [disabled]="!arquivo || processando" (click)="enviar()">
+      Gerar Flashcards
+    </button>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2 class="section-title">Aulas recentes</h2>
+      <a class="link-suave" routerLink="/aulas">Ver todas →</a>
+    </div>
+
+    @if (aulas.length) {
+      <div class="lista-aulas">
+        @for (aula of aulas.slice(0, 6); track aula.id) {
+          <a class="aula-item" [routerLink]="['/aulas', aula.id]">
+            <span class="aula-icone">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="aula-info">
+              <span class="aula-nome">{{ aula.materia ? aula.materia + ' — ' : '' }}{{ aula.titulo }}</span>
+              <span class="aula-meta">
+                {{ minutosDuracao(aula.duracao_segundos) }} min · {{ formatarData(aula.criada_em) }}
+              </span>
+            </span>
+            <span class="seta">→</span>
+          </a>
+        }
+      </div>
+    } @else {
+      <p class="vazio">Nenhuma aula ainda. Suba o primeiro áudio acima.</p>
+    }
+  </section>
+</div>
+
+@if (processando) {
+  <app-processing-overlay
+    [titulo]="'Enviando aula...'"
+    [passos]="['Transcrevendo áudio', 'Identificando conceitos-chave', 'Gerando flashcards']"
+    [progresso]="progressoUpload?.percent ?? 0"
+    [mostrarBarra]="true"
+  />
+}

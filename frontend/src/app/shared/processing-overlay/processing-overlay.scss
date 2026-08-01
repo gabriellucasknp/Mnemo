@@ -1,0 +1,29 @@
+.barra-upload {
+  width: min(380px, 90%);
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.barra-upload-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.barra-label {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.proc-step-title {
+  font-family: var(--font-title);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+}

@@ -1,0 +1,105 @@
+<div class="page animate-in">
+  <header class="page-head">
+    <h1>Simulados</h1>
+    <p class="sub">Teste seus conhecimentos com questões no estilo ENEM</p>
+  </header>
+
+  @if (erro) {
+    <div class="alerta erro"><span><app-icon name="warning" size="16" /> {{ erro }}</span></div>
+  }
+
+  <section class="section">
+    <div class="card">
+      <h2 class="section-title">Criar novo simulado</h2>
+
+      @if (opcoesAula.length) {
+        <div class="form-row">
+          <label class="form-label" for="aula">Aula base</label>
+          <select id="aula" class="campo" [(ngModel)]="aulaSelecionada" [disabled]="processando">
+            <option value="">Selecione uma aula...</option>
+            @for (aula of opcoesAula; track aula.id) {
+              <option [value]="aula.id">
+                {{ aula.materia || 'Aula' }} — {{ aula.titulo }} ({{ aula.flashcards_count }} flashcards)
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label" for="titulo">Título (opcional)</label>
+          <input
+            id="titulo"
+            class="campo"
+            type="text"
+            maxlength="255"
+            placeholder="Ex: Simulado de Biologia — Células"
+            [(ngModel)]="titulo"
+            [disabled]="processando"
+          />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label" for="quantidade">Quantidade de questões</label>
+          <select id="quantidade" class="campo" [(ngModel)]="quantidade" [disabled]="processando">
+            <option [ngValue]="5">5 questões</option>
+            <option [ngValue]="10">10 questões</option>
+            <option [ngValue]="15">15 questões</option>
+            <option [ngValue]="20">20 questões</option>
+          </select>
+        </div>
+
+        <button class="cta" type="button" [disabled]="processando || !aulaSelecionada" (click)="criar()">
+          Gerar simulado com IA
+        </button>
+      } @else {
+        <p class="vazio">
+          <app-icon name="warning" size="16" /> Você precisa ter pelo menos uma aula com flashcards para criar simulados.
+          <br /><a class="link-suave" routerLink="/nova-aula">Enviar uma aula</a>
+        </p>
+      }
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">Seus simulados</h2>
+    </div>
+
+    @if (carregando) {
+      <p class="vazio">Carregando simulados...</p>
+    } @else if (simulados.length) {
+      <div class="lista-aulas">
+        @for (simulado of simulados; track simulado.id) {
+          <a class="simulado-item" [routerLink]="['/simulados', simulado.id]">
+            <span class="simulado-icone">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M9 11l3 3L22 4" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="simulado-info">
+              <span class="simulado-nome">{{ simulado.titulo }}</span>
+              <span class="simulado-meta">
+                {{ simulado.quantidade_questoes }} questões
+                @if (simulado.materia) { · {{ simulado.materia }} }
+                · {{ formatarData(simulado.criado_em) }}
+                @if (simulado.total_respondidas) { · {{ simulado.total_acertadas }}/{{ simulado.total_respondidas }} acertos }
+              </span>
+            </span>
+            <button class="cta cta-danger cta-mini" type="button" (click)="excluir(simulado, $event)">Excluir</button>
+            <span class="seta">→</span>
+          </a>
+        }
+      </div>
+    } @else {
+      <p class="vazio">Nenhum simulado ainda. Crie o primeiro acima.</p>
+    }
+  </section>
+</div>
+
+@if (processando) {
+  <app-processing-overlay
+    [titulo]="'Gerando simulado...'"
+    [passos]="['Analisando flashcards', 'Gerando questões', 'Avaliando qualidade']"
+  />
+}

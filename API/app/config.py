@@ -27,5 +27,18 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        """URL normalizada pro SQLAlchemy.
+
+        O Render entrega a connection string como `postgres://...` (sem driver).
+        O SQLAlchemy precisa do esquema `postgresql+psycopg://` — normaliza aqui
+        pra funcionar igual no Docker local e no deploy.
+        """
+        url = self.database_url
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+psycopg://", 1)
+        return url
+
 
 settings = Settings()

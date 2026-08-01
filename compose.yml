@@ -1,6 +1,22 @@
 services:
+  web:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   api:
     image: mnemo:dev
+    build:
+      context: ./API
     ports:
       - "8000:8000"
     volumes:

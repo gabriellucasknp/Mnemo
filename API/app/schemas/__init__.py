@@ -37,6 +37,7 @@ class AulaOut(BaseModel):
     materia: str | None
     duracao_segundos: int | None
     criada_em: datetime
+    flashcards_count: int = 0
 
 
 class AulaDetalheOut(AulaOut):

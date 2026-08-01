@@ -1,0 +1,40 @@
+<div class="page animate-in">
+  <header class="page-head">
+    <h1>Meus decks</h1>
+    <p class="sub">Todos os flashcards gerados a partir das suas aulas</p>
+  </header>
+
+  @if (erro) {
+    <div class="alerta erro"><span><app-icon name="warning" size="16" /> {{ erro }}</span></div>
+  }
+
+  @if (carregando) {
+    <p class="vazio">Carregando decks...</p>
+  } @else if (aulas.length) {
+    <div class="grade-aulas">
+      @for (aula of aulas; track aula.id) {
+        <a class="deck-card" [routerLink]="['/aulas', aula.id]">
+          <span class="deck-card-capa">
+            <span class="deck-card-capa-deco"></span>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="18" height="13" rx="3" stroke="#fff" stroke-width="2"/>
+              <path d="M3 9H21" stroke="#fff" stroke-width="2"/>
+            </svg>
+          </span>
+          <span class="deck-card-body">
+            <span class="deck-card-materia">{{ aula.materia || 'Aula' }}</span>
+            <span class="deck-card-titulo">{{ aula.titulo }}</span>
+            <span class="deck-card-meta">
+              {{ minutosDuracao(aula.duracao_segundos) }} min · {{ formatarData(aula.criada_em) }}
+            </span>
+          </span>
+        </a>
+      }
+    </div>
+  } @else {
+    <p class="vazio">
+      Nenhuma aula ainda. Suba o primeiro áudio.
+      <br /><a class="link-suave" routerLink="/nova-aula">Enviar primeira aula</a>
+    </p>
+  }
+</div>

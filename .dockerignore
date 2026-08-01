@@ -1,6 +1,19 @@
-# Nunca deixe estas coisas entrarem na imagem Docker:
+# Nunca deixe estas coisas entrarem no contexto de build:
 **/venv
+**/node_modules
 **/__pycache__
 **/*.pyc
+**/.pytest_cache
+**/.angular
+**/dist
+**/storage
+*.env
+.env
 .git
+.gitignore
+.github
+.agent
+.vscode
 *.md
+API/tests
+pipeline

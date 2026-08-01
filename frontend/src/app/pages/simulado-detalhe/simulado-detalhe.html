@@ -1,0 +1,159 @@
+<div class="page animate-in">
+  @if (erro) {
+    <div class="alerta erro"><span><app-icon name="warning" size="16" /> {{ erro }}</span></div>
+  }
+
+  @if (carregando) {
+    <p class="vazio">Carregando simulado...</p>
+  } @else if (simulado && questoes.length) {
+    <!-- Resultado -->
+    @if (resultado) {
+      <section class="hero">
+        <div class="hero-circulo"></div>
+        <div>
+          <div class="hero-materia">Resultado</div>
+          <h1 class="hero-titulo">{{ simulado.titulo }}</h1>
+          <div class="hero-meta">
+            {{ resultado.total_questoes }} questões · {{ resultado.percentual }}% de acerto
+          </div>
+        </div>
+        <button class="cta" type="button" (click)="reiniciar()">Refazer simulado</button>
+      </section>
+
+      <section class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-value">{{ resultado.acertadas }}</span>
+          <span class="stat-label">Acertadas</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ resultado.erros }}</span>
+          <span class="stat-label">Erradas</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ resultado.percentual }}%</span>
+          <span class="stat-label">Aproveitamento</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Revisão das questões</h2>
+        @for (questao of questoesRevisao(); track questao.id) {
+          <div class="questao">
+            <div class="row mb-16">
+              <span class="badge" [class]="questao.acertou ? 'badge-professor' : 'badge-ia'">
+                <app-icon [name]="questao.acertou ? 'check' : 'x'" size="14" /> {{ questao.acertou ? 'Acertou' : 'Errou' }}
+              </span>
+              <span class="chip" [class]="questao.dificuldade === 'facil' ? 'exemplo' : questao.dificuldade === 'medio' ? 'conceito' : 'definicao'">
+                {{ questao.dificuldade }}
+              </span>
+              @if (questao.disciplina) {
+                <span class="text-soft" style="font-size: 13px">{{ questao.disciplina }}</span>
+              }
+            </div>
+            <p class="questao-enunciado">{{ questao.enunciado }}</p>
+            <div class="alternativas">
+              @for (letra of letras; track letra) {
+                @if (questao.alternativas[letra]) {
+                  <div
+                    class="alternativa"
+                    [class.certa]="letra === questao.gabarito"
+                    [class.errada]="questao.marcada === letra && letra !== questao.gabarito"
+                  >
+                    <span class="letra">{{ letra }}</span>
+                    <span>{{ questao.alternativas[letra] }}</span>
+                    @if (letra === questao.gabarito) {
+                      <span class="spacer"></span>
+                      <span style="font-size: 12px; font-weight: 700">Resposta correta</span>
+                    } @else if (questao.marcada === letra) {
+                      <span class="spacer"></span>
+                      <span style="font-size: 12px; font-weight: 700">Sua resposta</span>
+                    }
+                  </div>
+                }
+              }
+            </div>
+            @if (questao.explicacao) {
+              <div class="explicacao">{{ questao.explicacao }}</div>
+            }
+          </div>
+        }
+      </section>
+    } @else {
+      <!-- Respondendo -->
+      <div class="hero">
+        <div class="hero-circulo"></div>
+        <div>
+          <div class="hero-materia">{{ simulado.materia || 'Simulado' }}</div>
+          <h1 class="hero-titulo">{{ simulado.titulo }}</h1>
+          <div class="hero-meta">
+            {{ simulado.quantidade_questoes }} questões · {{ formatarData(simulado.criado_em) }}
+          </div>
+        </div>
+        <button class="cta cta-danger" type="button" [disabled]="excluindo" (click)="excluir()">
+          {{ excluindo ? 'Excluindo...' : 'Excluir' }}
+        </button>
+      </div>
+
+      <div class="row mb-16">
+        <span class="estudo-pos">Questão {{ idx + 1 }}/{{ questoes.length }}</span>
+        <div class="barra" style="flex: 1">
+          <div class="barra-fill" [style.width]="barraLargura"></div>
+        </div>
+        <span class="text-soft" style="font-size: 13px">{{ totalRespondidas }} respondidas</span>
+      </div>
+
+      @if (questaoAtual) {
+        <div class="questao">
+          <p class="questao-enunciado">{{ questaoAtual.enunciado }}</p>
+          <div class="alternativas">
+            @for (letra of letras; track letra) {
+              @if (questaoAtual.alternativas[letra]) {
+                <div
+                  class="alternativa"
+                  [class.marcada]="alternativaMarcada(questaoAtual, letra)"
+                  (click)="responder(questaoAtual, letra)"
+                >
+                  <span class="letra">{{ letra }}</span>
+                  <span>{{ questaoAtual.alternativas[letra] }}</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="cta cta-secondary" type="button" [disabled]="idx === 0" (click)="anterior()">
+            ← Anterior
+          </button>
+          @if (idx + 1 < questoes.length) {
+            <button class="cta" type="button" (click)="proxima()">Próxima →</button>
+          }
+          <span class="spacer"></span>
+          @if (todasRespondidas) {
+            <button class="cta" type="button" [disabled]="enviando" (click)="enviar()">
+              {{ enviando ? 'Enviando...' : '' }}<app-icon name="check" size="15" /> Enviar respostas
+            </button>
+          }
+        </div>
+      }
+
+      <div class="row mt-16">
+        @for (questao of questoes; track questao.id; let i = $index) {
+          <button
+            class="indicador-questao"
+            [class.respondida]="respostas[questao.id]"
+            (click)="irPara(i)"
+            [title]="'Questão ' + (i + 1)"
+          >
+            {{ i + 1 }}
+          </button>
+        }
+      </div>
+    }
+  } @else if (simulado && !questoes.length) {
+    <div class="alerta">
+      <span><app-icon name="warning" size="16" /> Este simulado não possui questões.</span>
+      <a class="link-suave" routerLink="/simulados">Voltar para simulados</a>
+    </div>
+  }
+</div>

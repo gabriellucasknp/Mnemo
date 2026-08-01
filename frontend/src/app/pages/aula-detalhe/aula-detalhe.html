@@ -1,0 +1,143 @@
+<div class="page animate-in">
+  @if (erro) {
+    <div class="alerta erro"><span><app-icon name="warning" size="16" /> {{ erro }}</span></div>
+  }
+
+  @if (carregando) {
+    <p class="vazio">Carregando aula...</p>
+  } @else if (aula) {
+    <div class="hero">
+      <div class="hero-circulo"></div>
+      <div>
+        <div class="hero-materia">{{ aula.materia || 'Aula' }}</div>
+        <h1 class="hero-titulo">{{ aula.titulo }}</h1>
+        <div class="hero-meta">
+          {{ flashcards.length }} flashcards
+          @if (aula.duracao_segundos) { · aula de {{ minutosDuracao(aula.duracao_segundos) }} min }
+          · {{ formatarData(aula.criada_em) }}
+        </div>
+      </div>
+      @if (flashcards.length) {
+        <button class="cta" type="button" (click)="iniciarEstudo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Iniciar revisão
+        </button>
+      }
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">Flashcards</h2>
+        <span class="badge badge-professor">derivados da fala do professor</span>
+      </div>
+
+      @if (flashcards.length) {
+        <div class="grade-cartas">
+          @for (carta of flashcards; track carta.id) {
+            <div class="carta-preview">
+              <span class="chip" [class]="classeCategoria(carta.categoria)">{{ carta.categoria }}</span>
+              <p class="carta-frente">{{ carta.pergunta }}</p>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="alerta">
+          <span><app-icon name="warning" size="16" /> Os flashcards desta aula ainda não foram gerados (a transcrição está salva — nada foi perdido).</span>
+          <button class="cta cta-mini" type="button" [disabled]="gerando" (click)="gerarFlashcards()">
+            {{ gerando ? 'Gerando...' : 'Gerar flashcards agora' }}
+          </button>
+        </div>
+      }
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">Transcrição</h2>
+        <span class="badge badge-fonte"><app-icon name="mic" size="14" /> fala do professor · fonte de verdade</span>
+      </div>
+      <details class="transcricao">
+        <summary>
+          Ver transcrição completa
+          @if (aula.transcricao?.idioma) { (idioma detectado: {{ aula.transcricao?.idioma }}) }
+        </summary>
+        <p>{{ aula.transcricao?.texto ?? 'Sem transcrição.' }}</p>
+      </details>
+    </section>
+
+    <section class="row">
+      @if (flashcards.length) {
+        <button class="cta cta-secondary" type="button" (click)="criarSimulado()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Criar simulado
+        </button>
+      }
+      <span class="spacer"></span>
+      <button class="cta cta-danger" type="button" [disabled]="excluindo" (click)="excluirAula()">
+        {{ excluindo ? 'Excluindo...' : 'Excluir aula' }}
+      </button>
+    </section>
+  }
+</div>
+
+@if (modoEstudo && cartaAtual) {
+  <div class="estudo">
+    <div class="estudo-topo">
+      <span class="estudo-pos">Cartão {{ idx + 1 }}/{{ flashcards.length }}</span>
+      <div class="barra"><div class="barra-fill" [style.width]="barraLargura"></div></div>
+      <span class="estudo-stats">{{ acertos }} <app-icon name="check" size="14" /> · {{ erros }} <app-icon name="x" size="14" /></span>
+      <button class="fechar" type="button" title="Fechar" (click)="fecharEstudo()"><app-icon name="x" size="18" /></button>
+    </div>
+
+    <div class="estudo-centro">
+      <div class="flip-wrap" (click)="virarCarta()">
+        <div class="flip" [class.virado]="virado">
+          <div class="face frente">
+            <span class="chip" [class]="classeCategoria(cartaAtual.categoria)">{{ cartaAtual.categoria }}</span>
+            <div class="face-texto">{{ cartaAtual.pergunta }}</div>
+            <div class="face-dica">Clique para virar</div>
+          </div>
+          <div class="face verso">
+            <span class="chip chip-branco">Resposta</span>
+            <div class="face-texto">{{ cartaAtual.resposta }}</div>
+            @if (cartaAtual.explicacao) {
+              <div class="face-extra">{{ cartaAtual.explicacao }}</div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="estudo-acoes">
+      <button class="acao acao-nao" type="button" [disabled]="!virado" (click)="responder(false)">
+        Não lembrei
+      </button>
+      <button class="acao acao-sim" type="button" [disabled]="!virado" (click)="responder(true)">
+        Lembrei
+      </button>
+    </div>
+  </div>
+}
+
+@if (modoConcluido) {
+  <div class="concluido">
+    <div class="conc-icone">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#4C4DDC"/>
+      </svg>
+    </div>
+    <h2 class="conc-titulo">Sessão concluída!</h2>
+    <p class="conc-sub">Você revisou {{ flashcards.length }} flashcards de {{ aula?.titulo }}</p>
+    <div class="conc-placar">
+      <div class="placar placar-sim"><b>{{ acertos }}</b><span>Lembrou</span></div>
+      <div class="placar placar-nao"><b>{{ erros }}</b><span>A revisar</span></div>
+    </div>
+    <div class="row">
+      <button class="cta" type="button" (click)="iniciarEstudo()">Revisar de novo</button>
+      <a class="cta cta-secondary" routerLink="/nova-aula">Enviar outra aula</a>
+    </div>
+  </div>
+}
