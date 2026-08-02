@@ -29,5 +29,5 @@ pipeline/data/
 API/app/ml/models/*.pkl
 API/training_data.json
 
-# Dataset ENEM (dados de treino ocultos)
-API/app/ml/data/*.json
+# Dataset ENEM (dados de treino)
+!API/app/ml/data/enem_2022.json
