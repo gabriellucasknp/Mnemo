@@ -14,7 +14,7 @@
       <div class="hero-meta">
         {{ simulado.quantidade_questoes }} questões
         {% if simulado.materia %} · {{ simulado.materia }}{% endif %}
-        · {{ simulado.criada_em.strftime('%d/%m/%Y') if simulado.criada_em else '' }}
+        · {{ simulado.criado_em.strftime('%d/%m/%Y') if simulado.criado_em else '' }}
       </div>
     </div>
     {% if simulado.questoes %}

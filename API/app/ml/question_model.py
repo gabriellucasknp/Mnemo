@@ -23,7 +23,7 @@ def _load_enem_dataset() -> list[dict]:
     if not DATASET_PATH.exists():
         logger.warning("Dataset ENEM não encontrado em %s", DATASET_PATH)
         return []
-    with open(DATASET_PATH, "r", encoding="utf-8") as f:
+    with open(DATASET_PATH, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 

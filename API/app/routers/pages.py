@@ -66,7 +66,7 @@ def gerar_pela_tela(aula_id: int, db: Session = Depends(get_db)):
 
 @router.get("/simulados")
 def pagina_simulados(request: Request, db: Session = Depends(get_db)):
-    simulados = db.query(Simulado).order_by(Simulado.criada_em.desc()).all()
+    simulados = db.query(Simulado).order_by(Simulado.criado_em.desc()).all()
     aulas = db.query(Aula).order_by(Aula.criada_em.desc()).all()
     return templates.TemplateResponse(
         request, "simulados.html", {"simulados": simulados, "aulas": aulas}
