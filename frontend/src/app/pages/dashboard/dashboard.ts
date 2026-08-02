@@ -2,10 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AulasService } from '../../core/aulas.service';
-import { MlService } from '../../core/ml.service';
 import { SimuladosService } from '../../core/simulados.service';
 import { formatarData, minutosDuracao, tempoDecorrido } from '../../core/format';
-import { Aula, Health, HealthDb, MlQuestoesStatus, MlStatus, Simulado } from '../../core/models';
+import { Aula, Simulado } from '../../core/models';
 import { IconComponent } from '../../shared/icon/icon.component';
 
 interface StatCard {
@@ -25,11 +24,6 @@ export class DashboardComponent implements OnInit {
   saudacao = 'Bom dia';
   stats: StatCard[] = [];
 
-  apiOk = false;
-  dbOk = false;
-  mlStatus: MlStatus | null = null;
-  mlQuestoesStatus: MlQuestoesStatus | null = null;
-
   erro: string | null = null;
   carregando = true;
 
@@ -40,7 +34,6 @@ export class DashboardComponent implements OnInit {
   constructor(
     private readonly aulasService: AulasService,
     private readonly simuladosService: SimuladosService,
-    private readonly mlService: MlService,
   ) {}
 
   ngOnInit(): void {
@@ -54,7 +47,6 @@ export class DashboardComponent implements OnInit {
     }
 
     this.carregarDados();
-    this.carregarStatus();
   }
 
   private carregarDados(): void {
@@ -75,28 +67,6 @@ export class DashboardComponent implements OnInit {
         this.simulados = simulados;
         this.atualizarStats();
       },
-      error: () => undefined,
-    });
-  }
-
-  private carregarStatus(): void {
-    this.aulasService.health().subscribe({
-      next: () => (this.apiOk = true),
-      error: () => (this.apiOk = false),
-    });
-
-    this.aulasService.healthDb().subscribe({
-      next: (health) => (this.dbOk = health.database === 'ok'),
-      error: () => (this.dbOk = false),
-    });
-
-    this.mlService.statusFlashcards().subscribe({
-      next: (status) => (this.mlStatus = status),
-      error: () => undefined,
-    });
-
-    this.mlService.statusQuestoes().subscribe({
-      next: (status) => (this.mlQuestoesStatus = status),
       error: () => undefined,
     });
   }

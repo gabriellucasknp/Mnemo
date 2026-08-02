@@ -11,48 +11,97 @@
   }
 
   <section class="card" style="margin-bottom: 28px">
-    <div
-      class="dropzone"
-      [class.selecionado]="arquivo"
-      [class.drag]="arrastando"
-      (click)="clicarDropzone()"
-      (dragover)="arrastando = true; $event.preventDefault()"
-      (dragleave)="arrastando = false"
-      (drop)="arrastando = false; aoSoltarArquivo($event)"
-    >
-      <input
-        #inputAudio
-        type="file"
-        name="audio"
-        accept=".mp3,.mp4,.wav,.m4a,.ogg,.webm,.flac"
-        hidden
-        (change)="aoSelecionarArquivo($event)"
-      />
-
-      @if (!arquivo) {
-        <span class="drop-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <span class="drop-title">Arraste um arquivo aqui</span>
-        <span class="drop-hint">ou clique para procurar · MP3, MP4, WAV, M4A, OGG</span>
-      } @else {
-        <span class="drop-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M9 11l3 3L22 4" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <span class="drop-title">{{ arquivo.name }}</span>
-        <span class="drop-hint">
-          {{ (arquivo.size / (1024 * 1024)).toFixed(1) }} MB · clique para trocar
-        </span>
-        <button class="cta cta-mini cta-danger" type="button" (click)="limparArquivo(); $event.stopPropagation()">
-          Remover arquivo
-        </button>
-      }
+    <div class="abas">
+      <button
+        class="aba"
+        [class.ativa]="modo === 'gravar'"
+        type="button"
+        (click)="trocarModo('gravar')"
+      >
+        <app-icon name="mic" size="16" /> Gravar
+      </button>
+      <button
+        class="aba"
+        [class.ativa]="modo === 'upload'"
+        type="button"
+        (click)="trocarModo('upload')"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+        </svg>
+        Enviar arquivo
+      </button>
     </div>
+
+    @if (modo === 'upload') {
+      <div
+        class="dropzone"
+        [class.selecionado]="arquivo"
+        [class.drag]="arrastando"
+        (click)="clicarDropzone()"
+        (dragover)="arrastando = true; $event.preventDefault()"
+        (dragleave)="arrastando = false"
+        (drop)="arrastando = false; aoSoltarArquivo($event)"
+      >
+        <input
+          #inputAudio
+          type="file"
+          name="audio"
+          accept=".mp3,.mp4,.wav,.m4a,.ogg,.webm,.flac"
+          hidden
+          (change)="aoSelecionarArquivo($event)"
+        />
+
+        @if (!arquivo) {
+          <span class="drop-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 15V4M12 4L7 9M12 4L17 9" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 16V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V16" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="drop-title">Arraste um arquivo aqui</span>
+          <span class="drop-hint">ou clique para procurar · MP3, MP4, WAV, M4A, OGG</span>
+        } @else {
+          <span class="drop-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M9 11l3 3L22 4" stroke="#4C4DDC" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="drop-title">{{ arquivo.name }}</span>
+          <span class="drop-hint">
+            {{ (arquivo.size / (1024 * 1024)).toFixed(1) }} MB · clique para trocar
+          </span>
+          <button class="cta cta-mini cta-danger" type="button" (click)="limparArquivo(); $event.stopPropagation()">
+            Remover arquivo
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="gravador" [class.gravando]="gravando">
+        @if (!gravando && !blobAudio) {
+          <button class="btn-gravar" type="button" (click)="iniciarGravacao()">
+            <app-icon name="mic" size="30" />
+          </button>
+          <span class="gravador-hint">Clique para começar a gravar sua aula</span>
+        }
+
+        @if (gravando) {
+          <button class="btn-gravar btn-gravar-ativo" type="button" (click)="pararGravacao()">
+            <span class="rec-dot"></span>
+          </button>
+          <span class="gravador-tempo">{{ tempoFormatado }}</span>
+          <span class="gravador-hint">Gravando... clique para parar</span>
+        }
+
+        @if (blobAudio && !gravando) {
+          <audio controls [src]="urlAudio" class="gravador-audio"></audio>
+          <button class="cta cta-mini" type="button" (click)="descartarGravacao()">
+            Gravar novamente
+          </button>
+        }
+      </div>
+    }
 
     <div class="form-row mt-24">
       <label class="form-label" for="titulo">Título da aula (opcional)</label>
@@ -67,9 +116,15 @@
       />
     </div>
 
-    <button class="cta" type="button" [disabled]="!arquivo || processando" (click)="enviar()">
-      Gerar Flashcards
-    </button>
+    @if (modo === 'upload') {
+      <button class="cta" type="button" [disabled]="!arquivo || processando" (click)="enviarArquivo(arquivo)">
+        Gerar Flashcards
+      </button>
+    } @else {
+      <button class="cta" type="button" [disabled]="!blobAudio || processando" (click)="enviarGravacao()">
+        Gerar Flashcards
+      </button>
+    }
   </section>
 
   <section>

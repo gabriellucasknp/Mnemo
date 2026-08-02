@@ -1,3 +1,104 @@
 .dropzone {
   min-height: 200px;
 }
+
+.abas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border, #e4e4ef);
+}
+
+.aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--text-soft, #6b6b80);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease;
+}
+
+.aba:hover {
+  color: var(--text, #1a1a2e);
+}
+
+.aba.ativa {
+  color: var(--primary, #4c4ddc);
+  border-bottom-color: var(--primary, #4c4ddc);
+}
+
+.gravador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-height: 200px;
+  justify-content: center;
+  padding: 24px;
+}
+
+.btn-gravar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary, #4c4ddc);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(76, 77, 220, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-gravar:hover {
+  transform: scale(1.06);
+}
+
+.btn-gravar-ativo {
+  background: #e5484d;
+  box-shadow: 0 8px 24px rgba(229, 72, 77, 0.4);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+
+.rec-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.gravador-tempo {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text, #1a1a2e);
+}
+
+.gravador-hint {
+  color: var(--text-soft, #6b6b80);
+  font-size: 14px;
+}
+
+.gravador-audio {
+  width: 100%;
+  max-width: 360px;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px rgba(229, 72, 77, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(229, 72, 77, 0.12);
+  }
+}

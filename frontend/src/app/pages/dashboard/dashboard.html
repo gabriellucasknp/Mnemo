@@ -39,34 +39,6 @@
 
   <section class="section">
     <div class="section-head">
-      <h2 class="section-title">Sistema</h2>
-      <div class="row">
-        <span class="status-pill" [class.ok]="apiOk" [class.erro]="!apiOk">
-          <span class="dot"></span> API
-        </span>
-        <span class="status-pill" [class.ok]="dbOk" [class.erro]="!dbOk">
-          <span class="dot"></span> Banco de dados
-        </span>
-        <span class="status-pill" [class.ok]="mlStatus?.treinado" [class.erro]="!mlStatus?.treinado">
-          <span class="dot"></span> ML flashcards
-        </span>
-        <span class="status-pill" [class.ok]="mlQuestoesStatus?.treinado" [class.erro]="!mlQuestoesStatus?.treinado">
-          <span class="dot"></span> ML questões
-        </span>
-      </div>
-    </div>
-
-    <div class="card">
-      <p class="text-soft" style="margin: 0">
-        O serviço de IA (Google Gemini) gera flashcards e simulados a partir da
-        transcrição. Os modelos de machine learning auxiliam na categorização e na
-        qualidade das questões.
-      </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-head">
       <h2 class="section-title">Aulas recentes</h2>
       <a class="link-suave" routerLink="/aulas">Ver todas →</a>
     </div>

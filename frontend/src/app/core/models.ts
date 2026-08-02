@@ -72,23 +72,6 @@ export interface ResultadoSimulado {
   detalhes: RespostaResultado[];
 }
 
-export interface Classificacao {
-  categoria: string;
-  confianca: number;
-  probabilidades: Record<string, number>;
-}
-
-export interface MlStatus {
-  treinado: boolean;
-  modelo: string;
-}
-
-export interface MlQuestoesStatus {
-  treinado: boolean;
-  modelo: string;
-  dataset: string;
-}
-
 export interface Health {
   status: string;
   version: string;
