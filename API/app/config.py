@@ -31,13 +31,19 @@ class Settings(BaseSettings):
     def sqlalchemy_database_url(self) -> str:
         """URL normalizada pro SQLAlchemy.
 
-        O Render entrega a connection string como `postgres://...` (sem driver).
-        O SQLAlchemy precisa do esquema `postgresql+psycopg://` — normaliza aqui
-        pra funcionar igual no Docker local e no deploy.
+        O único driver Postgres instalado é o psycopg 3 (`psycopg[binary]`),
+        mas o SQLAlchemy assume psycopg2 quando a URL não traz driver explícito
+        — tanto em `postgres://` quanto em `postgresql://`. O Render entrega a
+        connection string sem driver, então sem esta normalização o boot morre
+        com `ModuleNotFoundError: No module named 'psycopg2'`.
+
+        Força `postgresql+psycopg://` nos dois casos; URLs que já declaram um
+        driver (`postgresql+asyncpg://`, `sqlite://`, ...) passam intactas.
         """
         url = self.database_url
-        if url.startswith("postgres://"):
-            return url.replace("postgres://", "postgresql+psycopg://", 1)
+        for prefixo in ("postgres://", "postgresql://"):
+            if url.startswith(prefixo):
+                return f"postgresql+psycopg://{url[len(prefixo):]}"
         return url
 
 

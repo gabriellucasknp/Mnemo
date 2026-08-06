@@ -47,10 +47,25 @@ app = FastAPI(
 )
 
 # ── CORS (necessário pra API JSON e futuros frontends separados) ─────
+#
+# Em produção o nginx serve o SPA e a API no mesmo domínio, então o caminho
+# normal nem passa por CORS. O curinga existe só pra facilitar dev//docs.
+#
+# `*` junto de credenciais deixaria qualquer site fazer requisição autenticada
+# em nome do usuário — o Starlette, nesse combo, ecoa a origem de volta em vez
+# de mandar `*`, o que derruba a proteção. Só habilita credenciais quando a
+# lista de origens é explícita (defina CORS_ORIGINS pra isso).
+_cors_liberado = "*" in settings.cors_origins
+if _cors_liberado:
+    logger.warning(
+        "CORS liberado para qualquer origem; credenciais desabilitadas. "
+        "Defina CORS_ORIGINS com a lista de domínios em produção."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    allow_credentials=not _cors_liberado,
     allow_methods=["*"],
     allow_headers=["*"],
 )

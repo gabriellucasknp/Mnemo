@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--existing-flashcards", type=str, default=None, help="JSON com flashcards existentes do banco")
     args = parser.parse_args()
 
+
     # 1. Carregar ou gerar dados
     if args.data_file and Path(args.data_file).exists():
         logger.info("Carregando dados de %s...", args.data_file)
