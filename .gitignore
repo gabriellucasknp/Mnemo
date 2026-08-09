@@ -18,10 +18,6 @@ API/storage/*
 # Modelos do Whisper em cache
 **/.cache/whisper/
 
-# Configs locais de ferramentas
-.claude/
-.agent/
-
 # Data lake (gerado pelo pipeline)
 pipeline/data/
 
