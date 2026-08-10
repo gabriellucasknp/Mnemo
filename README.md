@@ -56,8 +56,8 @@ docker compose exec api pytest          # dentro do container
 # ou local: cd API && python -m pytest
 ```
 
-A suíte (20 testes) roda em ~1 s: usa SQLite em memória e mocks do Whisper e
-da Anthropic — nada de rede, custo de API ou espera de transcrição.
+A suíte roda em poucos segundos: usa SQLite em memória e mocks do Whisper e
+do Gemini — nada de rede, custo de API ou espera de transcrição.
 
 ## 📊 Pipeline de dados (PySpark)
 
@@ -78,5 +78,27 @@ Consulta rápida depois de rodar:
 ```sql
 SELECT * FROM analytics.resumo_materias;
 ```
+
+## ☁️ Deploy (Render)
+
+O [render.yaml](render.yaml) é um Blueprint completo: serviço web Docker
+(SPA + API + nginx numa imagem) + Postgres gerenciado.
+
+1. **New Blueprint Instance** apontando pro repositório.
+2. Preencha `GEMINI_API_KEY` quando o Render pedir (as demais env vars —
+   `DATABASE_URL`, `ADMIN_TOKEN`, `CORS_ORIGINS` — já vêm do blueprint).
+3. Ajuste `CORS_ORIGINS` se o domínio for diferente de `mnemo.onrender.com`.
+
+Notas de operação:
+
+- **Plano**: `standard` (2 GB) é o mínimo — torch + Whisper não cabem em 512 MB.
+- **Health check**: `/health/ready` valida o banco e devolve 503 quando degradado.
+- **Modelos ML**: treinados no build da imagem (`scripts/build_models.py`) a
+  partir de dados versionados no git — nada de 503 no primeiro boot nem modelo
+  perdido no filesystem efêmero.
+- **Endpoints de treino** (`POST /api/ml/treinar*`): exigem o header
+  `X-Admin-Token` com o valor de `ADMIN_TOKEN`; sem a env var ficam desabilitados.
+- **Rate limiting**: uploads 3/hora/IP, gerações via IA 10/hora/IP (slowapi).
+- **Swagger** (`/docs`): disponível só com `DEBUG=true` (dev).
 
 

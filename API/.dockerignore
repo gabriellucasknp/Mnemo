@@ -6,9 +6,15 @@ __pycache__
 *.pyc
 .pytest_cache
 
-# SEGREDOS nunca entram na imagem: a chave da Anthropic vive no .env e é
+# SEGREDOS nunca entram na imagem: a chave do Gemini vive no .env e é
 # injetada em runtime pelo compose (env_file) / pelo Secrets Manager na AWS.
+# `**/.env` cobre .env em qualquer subdiretório (ex.: tests/.env) — o padrão
+# simples `.env` só casa na raiz do contexto de build.
 .env
+**/.env
+
+# Testes não pertencem à imagem (e podem carregar fixtures/segredos locais).
+tests
 
 # Áudios temporários de execuções locais.
 storage

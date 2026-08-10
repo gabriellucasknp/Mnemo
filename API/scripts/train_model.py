@@ -48,7 +48,7 @@ def main():
         logger.info("Carregando dados de %s...", args.data_file)
         samples = load_training_data(args.data_file)
     else:
-        logger.info("Gerando dados sintéticos via Anthropic API (%d batches)...", args.batches)
+        logger.info("Gerando dados sintéticos via API do Gemini (%d batches)...", args.batches)
         samples = generate_training_data(n_batches=args.batches)
         if samples:
             save_training_data(samples, args.save_data)

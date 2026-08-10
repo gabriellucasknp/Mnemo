@@ -17,6 +17,9 @@ services:
     image: mnemo:dev
     build:
       context: ./API
+      # Sem target o Docker constrói o ÚLTIMO estágio (prod, sem --reload):
+      # o bind-mount abaixo só faz sentido com o estágio dev.
+      target: dev
     ports:
       - "8000:8000"
     volumes:

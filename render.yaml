@@ -20,11 +20,15 @@ services:
     name: mnemo
     runtime: docker
     repo: https://github.com/gabriellucasknp/Mnemo.git
-    plan: starter
+    # standard (2 GB): torch CPU + Whisper "base" + FastAPI não cabem nos
+    # 512 MB do starter — a primeira transcrição mataria o container por OOM.
+    plan: standard
     region: sao-paulo
     dockerContext: .
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /health
+    # /health/ready valida o banco e devolve 503 quando degradado —
+    # o /health simples responde 200 mesmo com o Postgres fora.
+    healthCheckPath: /health/ready
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -34,6 +38,14 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-2.0-flash
+      # Token dos endpoints administrativos (POST /api/ml/treinar*).
+      # Sem ele os endpoints de treino respondem 503 (fechado por padrão).
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Lista JSON (formato que o pydantic-settings espera). Ajuste se o
+      # serviço mudar de nome/domínio. Sem esta env var o app sobe com "*".
+      - key: CORS_ORIGINS
+        value: '["https://mnemo.onrender.com"]'
       - key: WHISPER_MODEL
         value: base
       - key: MAX_UPLOAD_MB

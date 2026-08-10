@@ -9,6 +9,8 @@
 **/storage
 *.env
 .env
+**/.env
+**/tests/.env
 .git
 .gitignore
 .github

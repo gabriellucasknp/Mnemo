@@ -45,6 +45,11 @@ def criar_spark() -> SparkSession:
         .master("local[*]")
         .config("spark.jars", os.environ.get("POSTGRES_JDBC_JAR", ""))
         .config("spark.sql.session.timeZone", "UTC")
+        # Overwrite dinâmico: substitui só as partições presentes no DataFrame.
+        # No modo estático (default), o overwrite do bronze apagaria o diretório
+        # inteiro — incluindo as partições de dias anteriores, matando o
+        # histórico que o particionamento por data_ingestao existe pra guardar.
+        .config("spark.sql.sources.partitionOverwriteMode", "dynamic")
         .getOrCreate()
     )
 
