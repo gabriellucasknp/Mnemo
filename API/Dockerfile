@@ -23,6 +23,10 @@ RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')" \
 
 COPY . .
 
+# Treina os modelos ML no build (dados versionados no git, sem rede):
+# artefatos .pkl reproduzíveis dentro da imagem, nada de 503 no primeiro boot.
+RUN python -m scripts.build_models
+
 # ----------------------------------------------------------------- dev ----
 FROM base AS dev
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

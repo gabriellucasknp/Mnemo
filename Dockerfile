@@ -40,6 +40,11 @@ RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')" \
 
 COPY API/ .
 
+# Treina os modelos ML no build (dados versionados no git, sem rede):
+# sem isso o classificador nasce 503 e o modelo de qualidade se perde
+# a cada deploy no filesystem efêmero do Render.
+RUN python -m scripts.build_models
+
 # ---- Estágio 3: unifica SPA + API atrás do nginx -------------
 FROM api-base
 
