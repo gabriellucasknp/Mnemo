@@ -75,11 +75,20 @@ def gerar_flashcards(texto_transcricao: str) -> DeckGerado:
         ),
     )
 
+    raw = response.text
+    if raw is None:
+        # Bloqueio de safety ou truncamento por max_output_tokens: o SDK devolve
+        # text=None e o json.loads estouraria com TypeError pouco explicativo.
+        logger.error(
+            "Gemini retornou resposta vazia (candidates=%s)",
+            getattr(response, "candidates", None),
+        )
+        raise RuntimeError("A IA não devolveu conteúdo (bloqueio ou truncamento).")
+
     try:
-        raw = response.text
         deck_dict = json.loads(raw)
         deck = DeckGerado(**deck_dict)
-    except (json.JSONDecodeError, KeyError, Exception) as e:
+    except Exception as e:
         logger.error("Gemini não retornou formato válido: %s", e)
         raise RuntimeError("A IA não devolveu flashcards no formato esperado.") from e
 

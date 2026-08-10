@@ -5,7 +5,7 @@ from typing import Literal
 
 from google import genai
 from google.genai import types
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.config import settings
 from app.ml.question_model import get_question_quality_model
@@ -19,6 +19,18 @@ class QuestaoGerada(BaseModel):
         description="Alternativas de A a E"
     )
     gabarito: str = Field(description="Letra da resposta correta (A-E)")
+
+    @field_validator("gabarito")
+    @classmethod
+    def _normalizar_gabarito(cls, v: str) -> str:
+        # A coluna no banco é String(1): se o Gemini devolver "Alternativa C"
+        # ou "c", normaliza/rejeita aqui em vez de estourar no Postgres.
+        v = v.strip().upper()
+        if len(v) > 1 and v[0] in "ABCDE" and not v[1].isalnum():
+            v = v[0]
+        if v not in {"A", "B", "C", "D", "E"}:
+            raise ValueError(f"Gabarito inválido: {v!r} (esperado A-E)")
+        return v
     explicacao: str | None = Field(
         default=None, description="Explicação da resposta correta"
     )
@@ -140,11 +152,20 @@ def gerar_simulado(
         ),
     )
 
+    raw = response.text
+    if raw is None:
+        # Bloqueio de safety ou truncamento por max_output_tokens: o SDK devolve
+        # text=None e o json.loads estouraria com TypeError pouco explicativo.
+        logger.error(
+            "Gemini retornou resposta vazia (candidates=%s)",
+            getattr(response, "candidates", None),
+        )
+        raise RuntimeError("A IA não devolveu conteúdo (bloqueio ou truncamento).")
+
     try:
-        raw = response.text
         data = json.loads(raw)
         simulado = SimuladoGerado(**data)
-    except (json.JSONDecodeError, KeyError, Exception) as e:
+    except Exception as e:
         logger.error("Gemini não retornou formato válido: %s", e)
         raise RuntimeError("A IA não devolveu o simulado no formato esperado.") from e
 

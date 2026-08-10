@@ -35,3 +35,24 @@ def test_deck_gerado_categorias_validas():
 def test_deck_sem_flashcards():
     deck = DeckGerado(titulo="Vazio", materia="Nenhuma", flashcards=[])
     assert len(deck.flashcards) == 0
+
+
+def test_questao_gerada_normaliza_gabarito():
+    import pytest
+
+    from app.services.question_service import QuestaoGerada
+
+    base = {
+        "enunciado": "Enunciado de teste com contexto suficiente.",
+        "alternativas": {"A": "a", "B": "b", "C": "c", "D": "d", "E": "e"},
+    }
+
+    assert QuestaoGerada(**base, gabarito="c").gabarito == "C"
+    assert QuestaoGerada(**base, gabarito=" B ").gabarito == "B"
+    # "C)" / "C." vindos do LLM são normalizados pra letra
+    assert QuestaoGerada(**base, gabarito="C)").gabarito == "C"
+
+    with pytest.raises(ValueError):
+        QuestaoGerada(**base, gabarito="Alternativa C")
+    with pytest.raises(ValueError):
+        QuestaoGerada(**base, gabarito="F")

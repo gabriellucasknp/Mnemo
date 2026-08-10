@@ -37,7 +37,9 @@ def salvar_audio(arquivo: UploadFile) -> Path:
                         f"Arquivo excede o limite de {settings.max_upload_mb} MB."
                     )
                 f.write(pedaco)
-    except ValueError:
+    except Exception:
+        # Qualquer falha na escrita (limite excedido, disco cheio, I/O):
+        # remove o arquivo parcial pra não vazar lixo em storage/.
         destino.unlink(missing_ok=True)
         raise
 

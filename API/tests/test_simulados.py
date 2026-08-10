@@ -95,6 +95,42 @@ def test_responder_simulado(client, simulado_criado):
     assert data["percentual"] >= 0
 
 
+def test_responder_simulado_alternativa_invalida(client, simulado_criado):
+    """String livre não pode chegar na coluna String(1) do Postgres."""
+    questao_id = simulado_criado.questoes[0].id
+    response = client.post(
+        f"/api/simulados/{simulado_criado.id}/responder",
+        json={"respostas": {questao_id: "Alternativa B"}},
+    )
+    assert response.status_code == 422
+
+
+def test_responder_simulado_aceita_minuscula(client, simulado_criado):
+    questao_id = simulado_criado.questoes[0].id
+    response = client.post(
+        f"/api/simulados/{simulado_criado.id}/responder",
+        json={"respostas": {questao_id: "b"}},
+    )
+    assert response.status_code == 200
+    assert response.json()["detalhes"][0]["alternativa_marcada"] == "B"
+
+
+def test_refazer_simulado_nao_acumula_respostas(client, simulado_criado):
+    """Refazer o simulado substitui a tentativa anterior (não infla o placar)."""
+    respostas = {q.id: q.gabarito for q in simulado_criado.questoes}
+
+    for _ in range(3):
+        response = client.post(
+            f"/api/simulados/{simulado_criado.id}/responder",
+            json={"respostas": respostas},
+        )
+        assert response.status_code == 200
+
+    detalhe = client.get(f"/api/simulados/{simulado_criado.id}").json()
+    assert detalhe["total_respondidas"] == len(respostas)
+    assert detalhe["total_acertadas"] == len(respostas)
+
+
 def test_deletar_simulado(client, simulado_criado):
     response = client.delete(f"/api/simulados/{simulado_criado.id}")
     assert response.status_code == 204

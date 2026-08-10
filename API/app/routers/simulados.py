@@ -1,10 +1,12 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, StringConstraints
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import LIMITE_GERACAO_IA, limiter
 from app.models import Aula
 from app.models.simulado import QuestaoSimulado, RespostaSimulado, Simulado
 from app.services.question_service import gerar_simulado
@@ -42,8 +44,13 @@ class SimuladoOut(BaseModel):
     total_respondidas: int = 0
 
 
+# Alternativa válida: exatamente uma letra de A a E (maiúscula ou minúscula).
+# A coluna no Postgres é String(1) — string livre estouraria o limite (500).
+Alternativa = Annotated[str, StringConstraints(pattern=r"^[A-Ea-e]$")]
+
+
 class ResponderRequest(BaseModel):
-    respostas: dict[int, str] = Field(
+    respostas: dict[int, Alternativa] = Field(
         description="Mapa questao_id -> alternativa (A-E)"
     )
 
@@ -66,7 +73,10 @@ class ResultadoSimulado(BaseModel):
 
 
 @router.post("", response_model=SimuladoOut, status_code=201)
-def criar_simulado(req: CriarSimuladoRequest, db: Session = Depends(get_db)):
+@limiter.limit(LIMITE_GERACAO_IA)
+def criar_simulado(
+    request: Request, req: CriarSimuladoRequest, db: Session = Depends(get_db)
+):
     aula = db.get(Aula, req.aula_id)
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")
@@ -91,7 +101,9 @@ def criar_simulado(req: CriarSimuladoRequest, db: Session = Depends(get_db)):
         )
     except Exception as e:
         logger.exception("Erro ao gerar simulado para aula %s", req.aula_id)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(
+            status_code=500, detail="Falha ao gerar o simulado via IA."
+        ) from e
 
     simulado = Simulado(
         titulo=simulado_gerado.titulo,
@@ -150,13 +162,19 @@ def responder_simulado(
     acertadas = 0
     detalhes = []
 
+    # Refazer o simulado substitui a tentativa anterior — sem isso o histórico
+    # acumula e o placar (total_acertadas/total_respondidas) infla a cada refação.
+    db.query(RespostaSimulado).filter(
+        RespostaSimulado.simulado_id == simulado.id
+    ).delete()
+
     for questao_id, alternativa in req.respostas.items():
         questao = questoes.get(questao_id)
         if questao is None:
             continue
 
         acertou = alternativa.upper() == questao.gabarito.upper()
-        if acertadas is not None and acertou:
+        if acertou:
             acertadas += 1
 
         resposta = RespostaSimulado(
