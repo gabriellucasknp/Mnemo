@@ -6,9 +6,14 @@ from sqlalchemy.pool import StaticPool
 
 from app.config import settings
 from app.database import Base, get_db
+from app.limiter import limiter
 from app.main import app
 from app.services import aula_service
 from app.services.flashcard_service import DeckGerado, FlashcardGerado
+
+# Rate limiting desligado na suíte: os limites são por IP e o TestClient usa
+# sempre o mesmo ("testclient") — os testes estourariam o limite entre si.
+limiter.enabled = False
 
 # --- Banco de teste: SQLite em memória, uma conexão compartilhada ---
 engine_teste = create_engine(

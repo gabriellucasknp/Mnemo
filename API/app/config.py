@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # --- Segurança ---
     max_upload_mb: int = 200
     cors_origins: list[str] = ["*"]
+    # Token exigido nos endpoints administrativos (treino de modelos).
+    # Vazio = endpoints de treino ficam bloqueados (503) — seguro por padrão.
+    admin_token: str = ""
+    # Rate limiting dos endpoints caros (upload/IA). Desligável em testes.
+    rate_limit_enabled: bool = True
 
     # --- Debug / Logging ---
     debug: bool = False

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.ml.question_model import get_question_quality_model
+from app.security import exigir_admin
 
 logger = logging.getLogger("mnemo.api.ml_questoes")
 
@@ -29,7 +30,11 @@ class AvaliarQuestaoResponse(BaseModel):
     features: dict
 
 
-@router.post("/treinar-questoes", response_model=TreinarQualidadeResponse)
+@router.post(
+    "/treinar-questoes",
+    response_model=TreinarQualidadeResponse,
+    dependencies=[Depends(exigir_admin)],
+)
 def treinar_modelo_questoes():
     model = get_question_quality_model()
     try:

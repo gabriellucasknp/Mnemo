@@ -1,9 +1,10 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.ml.classifier import get_classifier
+from app.security import exigir_admin
 
 logger = logging.getLogger("mnemo.api.ml")
 
@@ -64,9 +65,9 @@ def classificar_batch(req: ClassificarBatchRequest):
     return ClassificarBatchResponse(resultados=classifier.predict_batch(req.textos))
 
 
-@router.post("/treinar", response_model=TreinarResponse)
+@router.post("/treinar", response_model=TreinarResponse, dependencies=[Depends(exigir_admin)])
 def treinar_modelo(req: TreinarRequest):
-    """Treina o classificador com os dados fornecidos."""
+    """Treina o classificador com os dados fornecidos (requer header X-Admin-Token)."""
     if len(req.textos) != len(req.labels):
         raise HTTPException(status_code=400, detail="textos e labels devem ter o mesmo tamanho")
     if len(req.textos) < 10:

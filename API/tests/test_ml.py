@@ -11,8 +11,13 @@ def classifier(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def trained_classifier():
-    """Retorna um classificador já treinado com dados mínimos."""
+def trained_classifier(tmp_path, monkeypatch):
+    """Retorna um classificador já treinado com dados mínimos.
+
+    MODEL_PATH é monkeypatchado pra tmp: sem isso o treino do teste
+    sobrescreve o flashcard_classifier.pkl real do projeto.
+    """
+    monkeypatch.setattr("app.ml.classifier.MODEL_PATH", tmp_path / "fake.pkl")
     clf = FlashcardClassifier()
     texts = [
         "O que é mitocôndria? A mitocôndria é a organela da respiração celular.",
@@ -104,3 +109,55 @@ def test_predict_batch(trained_classifier):
 def test_get_classifier():
     clf = get_classifier()
     assert isinstance(clf, FlashcardClassifier)
+
+
+# --- Auth dos endpoints de treino (X-Admin-Token) ------------------------
+
+TREINO_PAYLOAD = {
+    "textos": [f"texto de exemplo numero {i} sobre biologia celular" for i in range(20)],
+    "labels": ["conceito", "processo", "exemplo", "definição"] * 5,
+}
+
+
+def test_treinar_sem_admin_token_configurado(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "admin_token", "")
+    response = client.post("/api/ml/treinar", json=TREINO_PAYLOAD)
+    assert response.status_code == 503
+
+
+def test_treinar_com_token_invalido(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "admin_token", "segredo-certo")
+    response = client.post(
+        "/api/ml/treinar",
+        json=TREINO_PAYLOAD,
+        headers={"X-Admin-Token": "segredo-errado"},
+    )
+    assert response.status_code == 401
+
+
+def test_treinar_com_token_valido(client, tmp_path, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "admin_token", "segredo-certo")
+    # Não deixa o treino do teste sobrescrever o .pkl real do projeto.
+    monkeypatch.setattr("app.ml.classifier.MODEL_PATH", tmp_path / "fake.pkl")
+
+    response = client.post(
+        "/api/ml/treinar",
+        json=TREINO_PAYLOAD,
+        headers={"X-Admin-Token": "segredo-certo"},
+    )
+    assert response.status_code == 200
+    assert "accuracy" in response.json()
+
+
+def test_treinar_questoes_sem_token(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "admin_token", "segredo-certo")
+    response = client.post("/api/ml/treinar-questoes")
+    assert response.status_code == 401

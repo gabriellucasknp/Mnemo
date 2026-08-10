@@ -15,6 +15,9 @@ pydantic-settings==2.7.0
 # --- Telas ---
 jinja2==3.1.5
 
+# --- Rate limiting (endpoints caros: upload/Whisper/Gemini) ---
+slowapi==0.1.9
+
 # --- Transcrição (Whisper) ---
 openai-whisper==20240930
 

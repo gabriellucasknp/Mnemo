@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import LIMITE_GERACAO_IA, LIMITE_UPLOAD, limiter
 from app.models import Aula
 from app.models.simulado import Simulado
 from app.services import aula_service
@@ -26,7 +27,9 @@ def pagina_upload(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/enviar")
+@limiter.limit(LIMITE_UPLOAD)
 def enviar_pela_tela(
+    request: Request,
     audio: UploadFile = File(...),
     titulo: str | None = Form(default=None),
     db: Session = Depends(get_db),
@@ -36,7 +39,16 @@ def enviar_pela_tela(
     except ValueError as e:
         return RedirectResponse(url=f"/?erro={quote(str(e))}", status_code=303)
 
-    aula = aula_service.criar_aula_com_transcricao(db, caminho, titulo or None)
+    try:
+        aula = aula_service.criar_aula_com_transcricao(db, caminho, titulo or None)
+    except Exception:
+        # Áudio corrompido / ffmpeg falhou: no fluxo HTML devolve a tela de
+        # upload com a mensagem, não um JSON 500 cru.
+        logger.exception("Falha ao transcrever áudio enviado pela tela")
+        return RedirectResponse(
+            url=f"/?erro={quote('Não foi possível processar o áudio. Tente outro arquivo.')}",
+            status_code=303,
+        )
     try:
         aula_service.gerar_e_salvar_flashcards(db, aula)
     except Exception:
@@ -53,7 +65,8 @@ def pagina_aula(aula_id: int, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/aulas/{aula_id}/gerar")
-def gerar_pela_tela(aula_id: int, db: Session = Depends(get_db)):
+@limiter.limit(LIMITE_GERACAO_IA)
+def gerar_pela_tela(request: Request, aula_id: int, db: Session = Depends(get_db)):
     aula = db.get(Aula, aula_id)
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")
@@ -84,10 +97,14 @@ def pagina_simulado_detalhe(simulado_id: int, request: Request, db: Session = De
 
 
 @router.post("/simulados/criar")
+@limiter.limit(LIMITE_GERACAO_IA)
 def criar_simulado_pela_tela(
+    request: Request,
     aula_id: int = Form(...),
     titulo: str | None = Form(default=None),
-    quantidade: int = Form(default=10),
+    # Mesmos limites da rota JSON (ge=3, le=20): sem eles, um form adulterado
+    # pede 500 questões e estoura tokens/custo no Gemini.
+    quantidade: int = Form(default=10, ge=3, le=20),
     db: Session = Depends(get_db),
 ):
     aula = db.get(Aula, aula_id)

@@ -1,9 +1,10 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import LIMITE_GERACAO_IA, limiter
 from app.models import Aula
 from app.schemas import AulaDetalheOut, FlashcardOut
 from app.services import aula_service
@@ -14,7 +15,8 @@ router = APIRouter(prefix="/api", tags=["flashcards"])
 
 
 @router.post("/aulas/{aula_id}/flashcards", response_model=AulaDetalheOut, status_code=201)
-def gerar_flashcards(aula_id: int, db: Session = Depends(get_db)):
+@limiter.limit(LIMITE_GERACAO_IA)
+def gerar_flashcards(request: Request, aula_id: int, db: Session = Depends(get_db)):
     aula = db.get(Aula, aula_id)
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")

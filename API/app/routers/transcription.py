@@ -1,10 +1,11 @@
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import LIMITE_UPLOAD, limiter
 from app.models import Aula, Flashcard
 from app.schemas import AulaDetalheOut, AulaOut
 from app.services import aula_service
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/api", tags=["aulas"])
 
 
 @router.post("/aulas", response_model=AulaDetalheOut, status_code=201)
+@limiter.limit(LIMITE_UPLOAD)
 def enviar_aula(
+    request: Request,
     audio: UploadFile = File(..., description="Áudio da aula (mp3, mp4, wav...)"),
     titulo: str | None = Form(default=None),
     db: Session = Depends(get_db),
