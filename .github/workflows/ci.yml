@@ -41,7 +41,7 @@ jobs:
           python-version: "3.12"
       - name: pip-audit
         run: |
-          pip install pip-audit "setuptools<71"
+         pip install pip-audit "setuptools<71" wheel
           pip-audit -r API/requirements.txt --skip-editable
 
   frontend:
