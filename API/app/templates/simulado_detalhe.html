@@ -157,7 +157,15 @@
 
       const btn = document.createElement('button');
       btn.className = 'alternativa-btn' + (respostas[q.id] === letra ? ' selecionada' : '');
-      btn.innerHTML = `<span class="alt-letra">${letra}</span><span class="alt-texto">${alt}</span>`;
+      // textContent (não innerHTML): o texto da alternativa vem da IA/banco —
+      // interpolar em HTML abriria XSS armazenado via prompt injection.
+      const spanLetra = document.createElement('span');
+      spanLetra.className = 'alt-letra';
+      spanLetra.textContent = letra;
+      const spanTexto = document.createElement('span');
+      spanTexto.className = 'alt-texto';
+      spanTexto.textContent = alt;
+      btn.append(spanLetra, spanTexto);
       btn.addEventListener('click', () => {
         respostas[q.id] = letra;
         renderQuestao();
@@ -203,14 +211,33 @@
         if (!q) continue;
         const div = document.createElement('div');
         div.className = 'revisao-item ' + (det.acertou ? 'acertou' : 'errou');
-        div.innerHTML = `
-          <div class="revisao-header">
-            <span class="revisao-status">${det.acertou ? '✓ Acertou' : '✗ Errou'}</span>
-            <span class="revisao-gabarito">Gabarito: ${det.gabarito}${det.alternativa_marcada ? ' | Sua: ' + det.alternativa_marcada : ''}</span>
-          </div>
-          <p class="revisao-enunciado">${q.enunciado.substring(0, 150)}...</p>
-          ${det.explicacao ? '<p class="revisao-explicacao">' + det.explicacao + '</p>' : ''}
-        `;
+
+        // Montagem via DOM + textContent: gabarito/explicação vêm da IA/banco —
+        // interpolar em innerHTML abriria XSS armazenado.
+        const header = document.createElement('div');
+        header.className = 'revisao-header';
+        const status = document.createElement('span');
+        status.className = 'revisao-status';
+        status.textContent = det.acertou ? '✓ Acertou' : '✗ Errou';
+        const gabarito = document.createElement('span');
+        gabarito.className = 'revisao-gabarito';
+        gabarito.textContent = 'Gabarito: ' + det.gabarito +
+          (det.alternativa_marcada ? ' | Sua: ' + det.alternativa_marcada : '');
+        header.append(status, gabarito);
+        div.appendChild(header);
+
+        const enunciado = document.createElement('p');
+        enunciado.className = 'revisao-enunciado';
+        enunciado.textContent = q.enunciado.substring(0, 150) + '...';
+        div.appendChild(enunciado);
+
+        if (det.explicacao) {
+          const explicacao = document.createElement('p');
+          explicacao.className = 'revisao-explicacao';
+          explicacao.textContent = det.explicacao;
+          div.appendChild(explicacao);
+        }
+
         lista.appendChild(div);
       }
 

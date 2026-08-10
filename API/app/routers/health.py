@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -24,7 +25,11 @@ def check_health_db(db: Session = Depends(get_db)):
         return {"status": "ok", "database": "ok"}
     except Exception:
         logger.exception("Health check do banco falhou")
-        return {"status": "degraded", "database": "error"}
+        # 503, não 200: probes (Render/k8s/nginx) olham o status code —
+        # "degraded" com 200 passa despercebido por qualquer supervisório.
+        return JSONResponse(
+            status_code=503, content={"status": "degraded", "database": "error"}
+        )
 
 
 @router.get("/health/ready")
@@ -35,4 +40,4 @@ def readiness(db: Session = Depends(get_db)):
         return {"status": "ready"}
     except Exception:
         logger.warning("Readiness check falhou")
-        return {"status": "not_ready"}
+        return JSONResponse(status_code=503, content={"status": "not_ready"})

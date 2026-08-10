@@ -18,6 +18,26 @@ def test_readiness(client):
     assert resposta.json()["status"] == "ready"
 
 
+def test_readiness_banco_caido_retorna_503(client):
+    """Probes olham o status code: banco fora = 503, não 200 com body triste."""
+    from app.database import get_db
+    from app.main import app
+
+    class _DbQuebrado:
+        def execute(self, *args, **kwargs):
+            raise RuntimeError("banco caiu")
+
+    app.dependency_overrides[get_db] = _DbQuebrado
+
+    resposta = client.get("/health/ready")
+    assert resposta.status_code == 503
+    assert resposta.json()["status"] == "not_ready"
+
+    resposta = client.get("/health/db")
+    assert resposta.status_code == 503
+    assert resposta.json()["database"] == "error"
+
+
 def test_respostas_incluem_headers_de_seguranca(client):
     resposta = client.get("/health")
     assert resposta.headers["X-Content-Type-Options"] == "nosniff"
