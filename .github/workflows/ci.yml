@@ -40,9 +40,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: pip-audit
+        working-directory: API
         run: |
-         pip install pip-audit "setuptools<71" wheel
-          pip-audit -r API/requirements.txt --skip-editable
+          pip install pip-audit "setuptools<71" wheel
+          pip-audit -r requirements.txt --skip-editable
 
   frontend:
     runs-on: ubuntu-latest
