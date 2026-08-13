@@ -1,0 +1,35 @@
+# ============================================================
+# Dependências BASE do Mnemo — suficientes para rodar a API e
+# a suíte de testes (pytest). Nada de pesos mortos aqui.
+#
+#   · numpy/scikit-learn: usados pelos routers de ML que a API
+#     importa no boot (não são opcionais no runtime).
+#   · google-genai: importado em module-level por
+#     app/services/flashcard_service.py — a API não sobe sem ele.
+#   · openai-whisper + torch ficam em requirements-ml.txt e são
+#     instalados só onde faz sentido (imagem de produção).
+# ============================================================
+
+# --- Servidor ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# --- Banco ---
+SQLAlchemy==2.0.43
+psycopg[binary]==3.2.13
+pydantic-settings==2.7.0
+
+# --- Telas ---
+jinja2==3.1.5
+
+# --- Machine Learning (classificador + qualidade de questões) ---
+numpy==2.4.6
+scikit-learn==1.9.0
+
+# --- IA / flashcards (Google Gemini) ---
+google-genai==2.16.0
+
+# --- Testes ---
+pytest==8.3.4
+httpx==0.28.1

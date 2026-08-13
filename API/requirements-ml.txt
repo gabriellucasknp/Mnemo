@@ -1,0 +1,17 @@
+# ============================================================
+# Dependências PESADAS de ML/transcrição do Mnemo.
+#
+# Mantidas fora de requirements-base.txt de propósito: o CI roda
+# os testes apenas com a base (mais rápido e previsível), e estas
+# libs só entram na imagem de produção.
+#
+#   · openai-whisper  → transcrição de áudio (lazy-import no boot)
+#   · torch           → NÃO é listado aqui de propósito: o Dockerfile
+#                       o instala explicitamente do índice CPU
+#                       (--index-url .../whl/cpu), evitando o wheel
+#                       CUDA de ~2.5 GB. Siga o mesmo padrão em CI.
+#   · ffmpeg          → binário de sistema, instalado via apt no
+#                       Dockerfile (não é um pacote Python).
+# ============================================================
+
+openai-whisper==20240930

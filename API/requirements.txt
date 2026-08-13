@@ -1,30 +1,14 @@
 # ============================================================
-# Dependências do Mnemo
+# Dependências do Mnemo (ponto de entrada único para a imagem
+# de produção).
+#
+#   requirements-base.txt → API + testes (usado pelo CI)
+#   requirements-ml.txt   → dependências pesadas (Whisper/torch)
+#
+# O CI instala apenas a base; a imagem Docker instala este
+# requirements.txt (base + ml) depois de instalar o torch do
+# índice CPU no Dockerfile.
 # ============================================================
 
-# --- Servidor ---
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-python-multipart==0.0.20
-
-# --- Banco ---
-SQLAlchemy==2.0.43
-psycopg[binary]==3.2.13
-pydantic-settings==2.7.0
-
-# --- Telas ---
-jinja2==3.1.5
-
-# --- Transcrição (Whisper) ---
-openai-whisper==20240930
-
-# --- IA / flashcards (Google Gemini) ---
-google-genai==2.16.0
-
-# --- Machine Learning ---
-scikit-learn==1.9.0
-numpy==2.4.6
-
-# --- Testes ---
-pytest==8.3.4
-httpx==0.28.1
+-r requirements-base.txt
+-r requirements-ml.txt
