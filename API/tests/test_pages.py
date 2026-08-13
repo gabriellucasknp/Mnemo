@@ -26,9 +26,7 @@ def test_enviar_pela_tela_redireciona_para_aula(
 
 
 def test_enviar_arquivo_invalido_volta_com_erro_escapado(client, storage_temporario):
-    resposta = client.post(
-        "/enviar", files=_audio_fake("slide.pdf"), follow_redirects=False
-    )
+    resposta = client.post("/enviar", files=_audio_fake("slide.pdf"), follow_redirects=False)
     assert resposta.status_code == 303
     destino = resposta.headers["location"]
     assert destino.startswith("/?erro=")
@@ -55,16 +53,14 @@ def test_pagina_de_aula_inexistente_da_404(client):
     assert client.get("/aulas/999").status_code == 404
 
 
-def test_botao_gerar_pela_tela(
-    client, whisper_mockado, ia_mockada, storage_temporario
-):
+def test_botao_gerar_pela_tela(client, whisper_mockado, ia_mockada, storage_temporario):
     post_resp = client.post(
         "/enviar", files=_audio_fake(), data={"titulo": "Retry"}, follow_redirects=False
     )
     aula_url = post_resp.headers["location"]
 
     # Simula flashcards falhados: deleta os existentes
-    from app.models import Flashcard, Aula
+    from app.models import Aula
     from tests.conftest import SessionTeste
 
     aula_id = int(aula_url.split("/")[-1])
@@ -82,9 +78,7 @@ def test_botao_gerar_pela_tela(
     assert len(pagina.text) > 100
 
 
-def test_lista_aulas_na_pagina_inicial(
-    client, whisper_mockado, ia_mockada, storage_temporario
-):
+def test_lista_aulas_na_pagina_inicial(client, whisper_mockado, ia_mockada, storage_temporario):
     for i in range(3):
         client.post("/enviar", files=_audio_fake(), data={"titulo": f"Aula {i}"})
     pagina = client.get("/")

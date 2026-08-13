@@ -20,7 +20,6 @@ def test_salvar_audio_extensoes_suportadas(tmp_path, monkeypatch):
         assert caminho.exists()
         assert caminho.suffix == f".{ext}"
         caminho.unlink()
-        
 
 
 def test_salvar_audio_rejeita_extensao_invalida(tmp_path, monkeypatch):

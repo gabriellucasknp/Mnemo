@@ -43,9 +43,7 @@ class SimuladoOut(BaseModel):
 
 
 class ResponderRequest(BaseModel):
-    respostas: dict[int, str] = Field(
-        description="Mapa questao_id -> alternativa (A-E)"
-    )
+    respostas: dict[int, str] = Field(description="Mapa questao_id -> alternativa (A-E)")
 
 
 class RespostaResultado(BaseModel):
@@ -77,10 +75,7 @@ def criar_simulado(req: CriarSimuladoRequest, db: Session = Depends(get_db)):
             detail="Aula não possui flashcards. Gere flashcards primeiro.",
         )
 
-    flashcards = [
-        {"pergunta": fc.pergunta, "resposta": fc.resposta}
-        for fc in aula.flashcards
-    ]
+    flashcards = [{"pergunta": fc.pergunta, "resposta": fc.resposta} for fc in aula.flashcards]
 
     try:
         simulado_gerado = gerar_simulado(
@@ -124,9 +119,7 @@ def criar_simulado(req: CriarSimuladoRequest, db: Session = Depends(get_db)):
 
 @router.get("", response_model=list[SimuladoOut])
 def listar_simulados(db: Session = Depends(get_db)):
-    simulados = (
-        db.query(Simulado).order_by(Simulado.criado_em.desc()).all()
-    )
+    simulados = db.query(Simulado).order_by(Simulado.criado_em.desc()).all()
     return [_simulado_para_out(s) for s in simulados]
 
 
@@ -139,9 +132,7 @@ def detalhar_simulado(simulado_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{simulado_id}/responder", response_model=ResultadoSimulado)
-def responder_simulado(
-    simulado_id: int, req: ResponderRequest, db: Session = Depends(get_db)
-):
+def responder_simulado(simulado_id: int, req: ResponderRequest, db: Session = Depends(get_db)):
     simulado = db.get(Simulado, simulado_id)
     if simulado is None:
         raise HTTPException(status_code=404, detail="Simulado não encontrado")

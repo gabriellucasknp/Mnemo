@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -9,11 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+import app.models
 from app.config import settings
 from app.database import Base, engine
 from app.routers import flashcards, health, ml, ml_questoes, pages, simulados, transcription
-
-import app.models  # noqa: F401
 
 # ── Logging estruturado ──────────────────────────────────────────────
 LOG_FORMAT = (

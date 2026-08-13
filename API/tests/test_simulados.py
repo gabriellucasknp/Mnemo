@@ -1,6 +1,6 @@
 import pytest
 
-from app.models.simulado import QuestaoSimulado, RespostaSimulado, Simulado
+from app.models.simulado import QuestaoSimulado, Simulado
 
 
 @pytest.fixture
@@ -35,7 +35,13 @@ def simulado_criado(db, ia_mockada):
     q1 = QuestaoSimulado(
         simulado_id=simulado.id,
         enunciado="Qual organela realiza respiração celular?",
-        alternativas={"A": "Ribossomo", "B": "Mitocôndria", "C": "Lisossomo", "D": "Complexo de Golgi", "E": "Retículo endoplasmático"},
+        alternativas={
+            "A": "Ribossomo",
+            "B": "Mitocôndria",
+            "C": "Lisossomo",
+            "D": "Complexo de Golgi",
+            "E": "Retículo endoplasmático",
+        },
         gabarito="B",
         explicacao="A mitocôndria é a organela responsável pela respiração celular.",
         dificuldade="medio",
@@ -45,7 +51,13 @@ def simulado_criado(db, ia_mockada):
     q2 = QuestaoSimulado(
         simulado_id=simulado.id,
         enunciado="Qual a função principal dos ribossomos?",
-        alternativas={"A": "Síntese de proteínas", "B": "Digestão", "C": "Transporte", "D": "Energia", "E": "Armazenamento"},
+        alternativas={
+            "A": "Síntese de proteínas",
+            "B": "Digestão",
+            "C": "Transporte",
+            "D": "Energia",
+            "E": "Armazenamento",
+        },
         gabarito="A",
         explicacao="Ribossomos são responsáveis pela síntese de proteínas.",
         dificuldade="facil",

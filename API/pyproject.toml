@@ -1,0 +1,16 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+# E (pycodestyle) + F (pyflakes) + I (isort) + UP (pyupgrade) + RUF.
+# flake8-bugbear (B) fica fora de propósito: `Depends(...)`/`File(...)`
+# em defaults é o idioma do FastAPI e `except Exception` é intencional
+# no handler global de erro.
+select = ["E", "F", "I", "UP", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

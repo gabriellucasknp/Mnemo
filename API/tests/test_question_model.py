@@ -2,26 +2,21 @@ import pytest
 
 from app.ml.question_model import (
     QuestionQualityModel,
-    QUALITY_MODEL_PATH,
-    get_question_quality_model,
-    _load_enem_dataset,
     _extract_features,
+    _load_enem_dataset,
+    get_question_quality_model,
 )
 
 
 @pytest.fixture
 def modelo(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "app.ml.question_model.QUALITY_MODEL_PATH", tmp_path / "fake_quality.pkl"
-    )
+    monkeypatch.setattr("app.ml.question_model.QUALITY_MODEL_PATH", tmp_path / "fake_quality.pkl")
     return QuestionQualityModel()
 
 
 @pytest.fixture
 def modelo_treinado(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "app.ml.question_model.QUALITY_MODEL_PATH", tmp_path / "fake_quality.pkl"
-    )
+    monkeypatch.setattr("app.ml.question_model.QUALITY_MODEL_PATH", tmp_path / "fake_quality.pkl")
     m = QuestionQualityModel()
     m.train_on_enem()
     return m

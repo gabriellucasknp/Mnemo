@@ -1,6 +1,6 @@
 import pytest
 
-from app.ml.classifier import FlashcardClassifier, MODEL_PATH, get_classifier
+from app.ml.classifier import FlashcardClassifier, get_classifier
 
 
 @pytest.fixture
@@ -35,11 +35,24 @@ def trained_classifier():
         "O que é proteína? Macromolécula essencial para o corpo.",
     ]
     labels = [
-        "conceito", "processo", "exemplo", "definição",
-        "definição", "processo", "exemplo", "conceito",
-        "definição", "processo", "exemplo", "conceito",
-        "processo", "definição", "exemplo", "conceito",
-        "processo", "conceito",
+        "conceito",
+        "processo",
+        "exemplo",
+        "definição",
+        "definição",
+        "processo",
+        "exemplo",
+        "conceito",
+        "definição",
+        "processo",
+        "exemplo",
+        "conceito",
+        "processo",
+        "definição",
+        "exemplo",
+        "conceito",
+        "processo",
+        "conceito",
     ]
     clf.train(texts, labels)
     return clf
@@ -73,11 +86,24 @@ def test_treino(classifier):
         "O que é proteína? Macromolécula essencial.",
     ]
     labels = [
-        "conceito", "processo", "exemplo", "definição",
-        "definição", "processo", "exemplo", "conceito",
-        "definição", "processo", "exemplo", "conceito",
-        "processo", "definição", "exemplo", "conceito",
-        "processo", "conceito",
+        "conceito",
+        "processo",
+        "exemplo",
+        "definição",
+        "definição",
+        "processo",
+        "exemplo",
+        "conceito",
+        "definição",
+        "processo",
+        "exemplo",
+        "conceito",
+        "processo",
+        "definição",
+        "exemplo",
+        "conceito",
+        "processo",
+        "conceito",
     ]
     metrics = classifier.train(texts, labels)
     assert classifier.is_trained

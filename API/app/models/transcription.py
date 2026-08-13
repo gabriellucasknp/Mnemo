@@ -17,7 +17,7 @@ class Origem(enum.Enum):
     """De onde a informação veio. O professor sempre 'vence' (SDD §5)."""
 
     PROFESSOR = "professor"  # transcrição da fala — fonte de verdade
-    IA = "ia"                # complemento gerado por IA — secundário, marcado
+    IA = "ia"  # complemento gerado por IA — secundário, marcado
 
 
 class Transcricao(Base):
@@ -28,11 +28,7 @@ class Transcricao(Base):
     texto: Mapped[str] = mapped_column(Text)
     idioma: Mapped[str | None] = mapped_column(String(10))
     # A origem marcada desde o dia 1 — é isso que prepara o banco pras fases futuras.
-    origem: Mapped[Origem] = mapped_column(
-        Enum(Origem, name="origem"), default=Origem.PROFESSOR
-    )
-    criada_em: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    origem: Mapped[Origem] = mapped_column(Enum(Origem, name="origem"), default=Origem.PROFESSOR)
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     aula = relationship("Aula", back_populates="transcricao")

@@ -1,4 +1,4 @@
-from app.services.flashcard_service import FlashcardGerado, DeckGerado
+from app.services.flashcard_service import DeckGerado, FlashcardGerado
 
 
 def test_flashcard_gerado_campos_obrigatorios():

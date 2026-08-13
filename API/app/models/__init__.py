@@ -7,10 +7,10 @@ from app.models.transcription import Origem, Transcricao
 
 __all__ = [
     "Aula",
-    "Transcricao",
     "Flashcard",
     "Origem",
-    "Simulado",
     "QuestaoSimulado",
     "RespostaSimulado",
+    "Simulado",
+    "Transcricao",
 ]

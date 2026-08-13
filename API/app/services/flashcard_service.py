@@ -17,9 +17,7 @@ class FlashcardGerado(BaseModel):
     )
     pergunta: str = Field(description="Pergunta clara e objetiva, em português")
     resposta: str = Field(description="Resposta direta, fiel à fala do professor")
-    explicacao: str | None = Field(
-        default=None, description="Contexto adicional curto, opcional"
-    )
+    explicacao: str | None = Field(default=None, description="Contexto adicional curto, opcional")
 
 
 class DeckGerado(BaseModel):

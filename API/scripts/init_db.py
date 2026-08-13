@@ -13,8 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import app.models  # noqa: E402,F401  (registra as tabelas no metadata)
-from app.database import Base, engine  # noqa: E402
+import app.models  # noqa: F401  (registra as tabelas no metadata)
+from app.database import Base, engine
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)-8s | %(message)s")
 logger = logging.getLogger("mnemo.init_db")

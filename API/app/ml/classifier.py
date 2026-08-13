@@ -52,18 +52,24 @@ class FlashcardClassifier:
 
         self.pipeline = Pipeline(
             [
-                ("tfidf", TfidfVectorizer(
-                    max_features=10000,
-                    ngram_range=(1, 2),
-                    sublinear_tf=True,
-                    strip_accents="unicode",
-                )),
-                ("clf", LogisticRegression(
-                    max_iter=1000,
-                    C=1.0,
-                    class_weight="balanced",
-                    random_state=random_state,
-                )),
+                (
+                    "tfidf",
+                    TfidfVectorizer(
+                        max_features=10000,
+                        ngram_range=(1, 2),
+                        sublinear_tf=True,
+                        strip_accents="unicode",
+                    ),
+                ),
+                (
+                    "clf",
+                    LogisticRegression(
+                        max_iter=1000,
+                        C=1.0,
+                        class_weight="balanced",
+                        random_state=random_state,
+                    ),
+                ),
             ]
         )
 
@@ -94,9 +100,7 @@ class FlashcardClassifier:
         return {
             "categoria": classes[sorted_idx[0]],
             "confianca": float(proba[sorted_idx[0]]),
-            "probabilidades": {
-                classes[i]: float(proba[i]) for i in sorted_idx
-            },
+            "probabilidades": {classes[i]: float(proba[i]) for i in sorted_idx},
         }
 
     def predict_batch(self, texts: list[str]) -> list[dict]:

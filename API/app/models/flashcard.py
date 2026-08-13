@@ -24,8 +24,6 @@ class Flashcard(Base):
     origem: Mapped[Origem] = mapped_column(
         Enum(Origem, name="origem", create_constraint=False), default=Origem.PROFESSOR
     )
-    criado_em: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     aula = relationship("Aula", back_populates="flashcards")

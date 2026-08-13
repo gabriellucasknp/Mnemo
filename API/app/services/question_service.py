@@ -15,19 +15,13 @@ logger = logging.getLogger("mnemo.question_service")
 
 class QuestaoGerada(BaseModel):
     enunciado: str = Field(description="Texto da questão (enunciado)")
-    alternativas: dict[str, str] = Field(
-        description="Alternativas de A a E"
-    )
+    alternativas: dict[str, str] = Field(description="Alternativas de A a E")
     gabarito: str = Field(description="Letra da resposta correta (A-E)")
-    explicacao: str | None = Field(
-        default=None, description="Explicação da resposta correta"
-    )
+    explicacao: str | None = Field(default=None, description="Explicação da resposta correta")
     dificuldade: Literal["facil", "medio", "dificil"] = Field(
         default="medio", description="Nível de dificuldade"
     )
-    disciplina: str | None = Field(
-        default=None, description="Disciplina/área de conhecimento"
-    )
+    disciplina: str | None = Field(default=None, description="Disciplina/área de conhecimento")
 
 
 class SimuladoGerado(BaseModel):
@@ -105,8 +99,7 @@ def gerar_simulado(
     enem_examples = _get_enem_examples(3)
 
     fc_text = "\n".join(
-        f"- {fc.get('pergunta', '')} → {fc.get('resposta', '')}"
-        for fc in flashcards
+        f"- {fc.get('pergunta', '')} → {fc.get('resposta', '')}" for fc in flashcards
     )
 
     prompt = (
@@ -119,9 +112,7 @@ def gerar_simulado(
         prompt += f"Matéria: {materia}\n"
     if enem_examples:
         prompt += f"\n{enem_examples}\n"
-    prompt += (
-        "\nRetorne APENAS um JSON válido com a estrutura especificada."
-    )
+    prompt += "\nRetorne APENAS um JSON válido com a estrutura especificada."
 
     logger.info(
         "Gerando simulado com %d questões a partir de %d flashcards",

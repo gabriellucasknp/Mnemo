@@ -33,9 +33,7 @@ def salvar_audio(arquivo: UploadFile) -> Path:
             while pedaco := arquivo.file.read(1024 * 1024):
                 total += len(pedaco)
                 if total > limite_bytes:
-                    raise ValueError(
-                        f"Arquivo excede o limite de {settings.max_upload_mb} MB."
-                    )
+                    raise ValueError(f"Arquivo excede o limite de {settings.max_upload_mb} MB.")
                 f.write(pedaco)
     except ValueError:
         destino.unlink(missing_ok=True)

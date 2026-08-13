@@ -67,7 +67,7 @@ class Settings(BaseSettings):
         url = self.database_url
         for prefixo in ("postgres://", "postgresql://"):
             if url.startswith(prefixo):
-                return f"postgresql+psycopg://{url[len(prefixo):]}"
+                return f"postgresql+psycopg://{url[len(prefixo) :]}"
         return url
 
 

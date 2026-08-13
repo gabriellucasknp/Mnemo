@@ -23,7 +23,7 @@ def _load_enem_dataset() -> list[dict]:
     if not DATASET_PATH.exists():
         logger.warning("Dataset ENEM não encontrado em %s", DATASET_PATH)
         return []
-    with open(DATASET_PATH, "r", encoding="utf-8-sig") as f:
+    with open(DATASET_PATH, encoding="utf-8-sig") as f:
         return json.load(f)
 
 
@@ -41,8 +41,7 @@ def _extract_features(question: dict) -> dict:
     num_alternatives = len(alternatives)
     has_context = "##" in text or "TEXTO" in text.upper()
     has_author = any(
-        w in text.lower()
-        for w in ["poema", "romance", "conto", "crônica", "letra", "texto de"]
+        w in text.lower() for w in ["poema", "romance", "conto", "crônica", "letra", "texto de"]
     )
 
     words = text.split()
@@ -78,9 +77,7 @@ class QuestionQualityModel:
             self._trained_on_enem = True
             logger.info("Modelo de qualidade carregado de %s", QUALITY_MODEL_PATH)
         else:
-            logger.warning(
-                "Nenhum modelo de qualidade encontrado em %s", QUALITY_MODEL_PATH
-            )
+            logger.warning("Nenhum modelo de qualidade encontrado em %s", QUALITY_MODEL_PATH)
 
     def _save_model(self):
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -176,12 +173,14 @@ class QuestionQualityModel:
         else:
             qualidade = "baixa"
 
-        features = _extract_features({
-            "question": question_text,
-            "alternatives": alternatives or [],
-            "label": "",
-            "description": [],
-        })
+        features = _extract_features(
+            {
+                "question": question_text,
+                "alternatives": alternatives or [],
+                "label": "",
+                "description": [],
+            }
+        )
 
         return {
             "qualidade": qualidade,
@@ -210,9 +209,11 @@ def _generate_low_quality_samples(n: int) -> list[dict]:
     samples = []
     for i in range(n):
         tmpl = templates[i % len(templates)]
-        samples.append({
-            "text": tmpl + " " + " ".join(["resposta genérica"] * (i % 3 + 1)),
-        })
+        samples.append(
+            {
+                "text": tmpl + " " + " ".join(["resposta genérica"] * (i % 3 + 1)),
+            }
+        )
     return samples
 
 

@@ -33,9 +33,7 @@ def enviar_aula(
 def listar_aulas(db: Session = Depends(get_db)):
     aulas = db.query(Aula).order_by(Aula.criada_em.desc()).all()
     contagens = dict(
-        db.query(Flashcard.aula_id, func.count(Flashcard.id))
-        .group_by(Flashcard.aula_id)
-        .all()
+        db.query(Flashcard.aula_id, func.count(Flashcard.id)).group_by(Flashcard.aula_id).all()
     )
     for aula in aulas:
         aula.flashcards_count = contagens.get(aula.id, 0)

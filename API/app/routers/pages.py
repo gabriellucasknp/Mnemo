@@ -78,9 +78,7 @@ def pagina_simulado_detalhe(simulado_id: int, request: Request, db: Session = De
     simulado = db.get(Simulado, simulado_id)
     if simulado is None:
         raise HTTPException(status_code=404, detail="Simulado não encontrado")
-    return templates.TemplateResponse(
-        request, "simulado_detalhe.html", {"simulado": simulado}
-    )
+    return templates.TemplateResponse(request, "simulado_detalhe.html", {"simulado": simulado})
 
 
 @router.post("/simulados/criar")
@@ -96,12 +94,12 @@ def criar_simulado_pela_tela(
 
     if not aula.flashcards:
         return RedirectResponse(
-            url=f"/simulados?erro=Gere os flashcards da aula primeiro",
+            url="/simulados?erro=Gere os flashcards da aula primeiro",
             status_code=303,
         )
 
-    from app.services.question_service import gerar_simulado
     from app.models.simulado import QuestaoSimulado
+    from app.services.question_service import gerar_simulado
 
     flashcards = [{"pergunta": fc.pergunta, "resposta": fc.resposta} for fc in aula.flashcards]
 

@@ -4,7 +4,7 @@ from typing import Literal
 
 from google import genai
 from google.genai import types
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.config import settings
 
@@ -40,7 +40,8 @@ Dicas de classificação:
 - processo: descreve etapas ou sequência (ex: "Como ocorre a divisão celular?")
 - exemplo: apresenta caso concreto (ex: "Qual um exemplo de protista?")
 
-Gere flashcards de DIVERSAS disciplinas: Biologia, Química, Física, Matemática, História, Geografia, Filosofia, Sociologia, Literatura, etc."""
+Gere flashcards de DIVERSAS disciplinas: Biologia, Química, Física, Matemática, \
+História, Geografia, Filosofia, Sociologia, Literatura, etc."""
 
 
 def _get_client() -> genai.Client:
@@ -108,7 +109,7 @@ def save_training_data(samples: list[dict], path: str = "training_data.json"):
 
 def load_training_data(path: str = "training_data.json") -> list[dict]:
     """Carrega dados de treinamento de JSON."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -122,10 +123,12 @@ def augment_with_existing_flashcards(
     augmented = []
     for fc in flashcards:
         if all(k in fc for k in ("pergunta", "resposta", "categoria")):
-            augmented.append({
-                "categoria": fc["categoria"],
-                "pergunta": fc["pergunta"],
-                "resposta": fc["resposta"],
-            })
+            augmented.append(
+                {
+                    "categoria": fc["categoria"],
+                    "pergunta": fc["pergunta"],
+                    "resposta": fc["resposta"],
+                }
+            )
     logger.info("Flashcards existentes adicionados: %d", len(augmented))
     return augmented

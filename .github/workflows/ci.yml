@@ -47,6 +47,20 @@ jobs:
         working-directory: frontend
         run: npm run build -- --configuration production
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ruff (check + format)
+        working-directory: API
+        run: |
+          pip install ruff
+          ruff check app tests scripts
+          ruff format --check app tests scripts
+
   security-audit:
     runs-on: ubuntu-latest
     continue-on-error: true

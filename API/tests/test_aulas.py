@@ -93,6 +93,7 @@ def test_deletar_aula_remove_cascade(client, db, whisper_mockado, ia_mockada, st
     client.post(f"/api/aulas/{aula_id}/flashcards")
 
     from app.models import Flashcard
+
     assert db.query(Flashcard).filter_by(aula_id=aula_id).count() > 0
 
     client.delete(f"/api/aulas/{aula_id}")

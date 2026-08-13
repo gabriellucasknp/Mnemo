@@ -36,12 +36,31 @@ logger = logging.getLogger("train")
 
 def main():
     parser = argparse.ArgumentParser(description="Treina o classificador de flashcards")
-    parser.add_argument("--batches", type=int, default=5, help="Número de batches para gerar via API")
-    parser.add_argument("--data-file", type=str, default=None, help="Arquivo JSON existente com dados de treino")
-    parser.add_argument("--save-data", type=str, default="training_data.json", help="Salvar dados gerados em JSON")
-    parser.add_argument("--existing-flashcards", type=str, default=None, help="JSON com flashcards existentes do banco")
+    parser.add_argument(
+        "--batches",
+        type=int,
+        default=5,
+        help="Número de batches para gerar via API",
+    )
+    parser.add_argument(
+        "--data-file",
+        type=str,
+        default=None,
+        help="Arquivo JSON existente com dados de treino",
+    )
+    parser.add_argument(
+        "--save-data",
+        type=str,
+        default="training_data.json",
+        help="Salvar dados gerados em JSON",
+    )
+    parser.add_argument(
+        "--existing-flashcards",
+        type=str,
+        default=None,
+        help="JSON com flashcards existentes do banco",
+    )
     args = parser.parse_args()
-
 
     # 1. Carregar ou gerar dados
     if args.data_file and Path(args.data_file).exists():
@@ -55,7 +74,7 @@ def main():
 
     # 2. Adicionar flashcards existentes do banco (se disponível)
     if args.existing_flashcards and Path(args.existing_flashcards).exists():
-        with open(args.existing_flashcards, "r", encoding="utf-8") as f:
+        with open(args.existing_flashcards, encoding="utf-8") as f:
             existing = json.load(f)
         extra = augment_with_existing_flashcards(existing)
         samples.extend(extra)
@@ -68,7 +87,8 @@ def main():
     texts = [f"{s['pergunta']} {s['resposta']}" for s in samples]
     labels = [s["categoria"] for s in samples]
 
-    logger.info("Amostras: %d | Categorias: %s", len(texts), dict(zip(*[sorted(set(labels))] * 2, [labels.count(c) for c in sorted(set(labels))])))
+    categorias = {c: labels.count(c) for c in sorted(set(labels))}
+    logger.info("Amostras: %d | Categorias: %s", len(texts), categorias)
 
     # 4. Treinar
     classifier = FlashcardClassifier()
