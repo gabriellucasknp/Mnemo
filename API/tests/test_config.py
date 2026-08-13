@@ -35,3 +35,21 @@ def test_credenciais_sobrevivem_a_normalizacao():
     """A senha não pode ser corrompida ao trocar o prefixo."""
     settings = Settings(database_url="postgres://u:p@ss@host/db")
     assert settings.sqlalchemy_database_url == "postgresql+psycopg://u:p@ss@host/db"
+
+
+def test_cors_padrao_libera_tudo():
+    assert Settings().cors_origins == ["*"]
+
+
+def test_cors_aceita_json():
+    origins = Settings(cors_origins='["https://app.onrender.com", "http://localhost:4200"]')
+    assert origins.cors_origins == ["https://app.onrender.com", "http://localhost:4200"]
+
+
+def test_cors_aceita_lista_separada_por_virgula():
+    origins = Settings(cors_origins="https://app.onrender.com,http://localhost:4200")
+    assert origins.cors_origins == ["https://app.onrender.com", "http://localhost:4200"]
+
+
+def test_cors_vazio_volta_a_liberar_tudo():
+    assert Settings(cors_origins="").cors_origins == ["*"]

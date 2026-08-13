@@ -1,3 +1,6 @@
+import json
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +23,27 @@ class Settings(BaseSettings):
     # --- Segurança ---
     max_upload_mb: int = 200
     cors_origins: list[str] = ["*"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value):
+        """Aceita CORS_ORIGINS como JSON (`["https://app.onrender.com"]`)
+        ou como lista separada por vírgula (`https://a.com,https://b.com`).
+
+        Evita que um valor não-JSON quebre o boot do app em produção.
+        """
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return ["*"]
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
 
     # --- Debug / Logging ---
     debug: bool = False
