@@ -11,9 +11,10 @@
 # ============================================================
 
 # --- Servidor ---
-fastapi==0.115.6
+fastapi==0.141.1
+starlette==1.6.0
 uvicorn[standard]==0.34.0
-python-multipart==0.0.20
+python-multipart==0.0.32
 
 # --- Banco ---
 SQLAlchemy==2.0.43
@@ -21,7 +22,7 @@ psycopg[binary]==3.2.13
 pydantic-settings==2.7.0
 
 # --- Telas ---
-jinja2==3.1.5
+jinja2==3.1.6
 
 # --- Machine Learning (classificador + qualidade de questões) ---
 numpy==2.4.6
@@ -31,5 +32,5 @@ scikit-learn==1.9.0
 google-genai==2.16.0
 
 # --- Testes ---
-pytest==8.3.4
+pytest==9.1.1
 httpx==0.28.1
