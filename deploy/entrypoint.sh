@@ -13,6 +13,12 @@ rm -f /etc/nginx/sites-enabled/default
 
 envsubst '${PORT} ${API_UPSTREAM}' < /etc/nginx/nginx.template > /etc/nginx/conf.d/default.conf
 
+# Aplica o schema antes de subir a API. Com `set -e`, um banco ainda
+# inacessível derruba o container e o Render reinicia até dar certo —
+# em vez de a API ligar e responder 500 pra sempre.
+echo "> Aplicando migrações/schema do banco..."
+python scripts/init_db.py
+
 UVICORN_LOG_LEVEL="$(echo "${LOG_LEVEL:-info}" | tr '[:upper:]' '[:lower:]')"
 
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 \
