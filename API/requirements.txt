@@ -3,7 +3,10 @@
 # ============================================================
 
 # --- Servidor ---
-fastapi==0.115.6
+fastapi==0.141.1
+# starlette pinado explicitamente: é transitiva do fastapi, mas já passou
+# despercebida com CVEs (PYSEC-2026-161 etc.) — pinar deixa o audit determinístico.
+starlette==1.6.0
 uvicorn[standard]==0.34.0
 python-multipart==0.0.32
 
