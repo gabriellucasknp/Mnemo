@@ -1,6 +1,7 @@
 import logging
-import pickle
 from pathlib import Path
+
+import joblib
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -26,16 +27,14 @@ class FlashcardClassifier:
 
     def _load_model(self):
         if MODEL_PATH.exists():
-            with open(MODEL_PATH, "rb") as f:
-                self.pipeline = pickle.load(f)
+            self.pipeline = joblib.load(MODEL_PATH)
             logger.info("Modelo carregado de %s", MODEL_PATH)
         else:
             logger.warning("Nenhum modelo treinado encontrado em %s", MODEL_PATH)
 
     def _save_model(self):
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
-        with open(MODEL_PATH, "wb") as f:
-            pickle.dump(self.pipeline, f)
+        joblib.dump(self.pipeline, MODEL_PATH)
         logger.info("Modelo salvo em %s", MODEL_PATH)
 
     def train(
