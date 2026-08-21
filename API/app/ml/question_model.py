@@ -1,7 +1,8 @@
 import json
 import logging
-import pickle
 from pathlib import Path
+
+import joblib
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -73,8 +74,7 @@ class QuestionQualityModel:
 
     def _load_model(self):
         if QUALITY_MODEL_PATH.exists():
-            with open(QUALITY_MODEL_PATH, "rb") as f:
-                self.pipeline = pickle.load(f)
+            self.pipeline = joblib.load(QUALITY_MODEL_PATH)
             self._trained_on_enem = True
             logger.info("Modelo de qualidade carregado de %s", QUALITY_MODEL_PATH)
         else:
@@ -84,8 +84,7 @@ class QuestionQualityModel:
 
     def _save_model(self):
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
-        with open(QUALITY_MODEL_PATH, "wb") as f:
-            pickle.dump(self.pipeline, f)
+        joblib.dump(self.pipeline, QUALITY_MODEL_PATH)
         logger.info("Modelo de qualidade salvo em %s", QUALITY_MODEL_PATH)
 
     def train_on_enem(self) -> dict:

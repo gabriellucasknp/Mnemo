@@ -15,11 +15,15 @@ COPY . .
 RUN npm run build -- --configuration production
 
 # -------------------------------------------------------------- nginx ----
-FROM nginx:1.27-alpine
+# Variante "unprivileged": roda como usuário não-root (uid 101) e escuta na
+# 8080 — portas <1024 exigem root. O compose mapeia 80 -> 8080.
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /fe/dist/frontend/browser /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 8080
+
+USER nginx
 
 CMD ["nginx", "-g", "daemon off;"]

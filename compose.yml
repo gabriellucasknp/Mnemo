@@ -2,7 +2,8 @@ services:
   web:
     build: ./frontend
     ports:
-      - "80:80"
+      # nginx roda como não-root no container e escuta na 8080.
+      - "80:8080"
     depends_on:
       api:
         condition: service_started

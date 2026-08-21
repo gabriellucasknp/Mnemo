@@ -16,6 +16,7 @@
   {% endif %}
 
   <form id="form-upload" action="/enviar" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label class="dropzone" id="dropzone">
       <input type="file" name="audio" id="input-audio" accept=".mp3,.mp4,.wav,.m4a,.ogg,.webm,.flac" hidden>
       <span class="drop-icon">
