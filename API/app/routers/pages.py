@@ -10,6 +10,7 @@ from app.database import get_db
 from app.limiter import LIMITE_GERACAO_IA, LIMITE_UPLOAD, limiter
 from app.models import Aula
 from app.models.simulado import Simulado
+from app.security import anexar_csrf_cookie, obter_csrf_token, validar_csrf
 from app.services import aula_service
 
 logger = logging.getLogger("mnemo.pages")
@@ -21,9 +22,18 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/")
 def pagina_upload(request: Request, db: Session = Depends(get_db)):
     aulas = db.query(Aula).order_by(Aula.criada_em.desc()).limit(6).all()
-    return templates.TemplateResponse(
-        request, "upload.html", {"aulas": aulas, "erro": request.query_params.get("erro")}
+    csrf_token = obter_csrf_token(request)
+    response = templates.TemplateResponse(
+        request,
+        "upload.html",
+        {
+            "aulas": aulas,
+            "erro": request.query_params.get("erro"),
+            "csrf_token": csrf_token,
+        },
     )
+    anexar_csrf_cookie(response, csrf_token)
+    return response
 
 
 @router.post("/enviar")
@@ -33,6 +43,7 @@ def enviar_pela_tela(
     audio: UploadFile = File(...),
     titulo: str | None = Form(default=None),
     db: Session = Depends(get_db),
+    _csrf: None = Depends(validar_csrf),
 ):
     try:
         caminho = aula_service.salvar_audio(audio)
@@ -61,12 +72,22 @@ def pagina_aula(aula_id: int, request: Request, db: Session = Depends(get_db)):
     aula = db.get(Aula, aula_id)
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")
-    return templates.TemplateResponse(request, "flashcards.html", {"aula": aula})
+    csrf_token = obter_csrf_token(request)
+    response = templates.TemplateResponse(
+        request, "flashcards.html", {"aula": aula, "csrf_token": csrf_token}
+    )
+    anexar_csrf_cookie(response, csrf_token)
+    return response
 
 
 @router.post("/aulas/{aula_id}/gerar")
 @limiter.limit(LIMITE_GERACAO_IA)
-def gerar_pela_tela(request: Request, aula_id: int, db: Session = Depends(get_db)):
+def gerar_pela_tela(
+    request: Request,
+    aula_id: int,
+    db: Session = Depends(get_db),
+    _csrf: None = Depends(validar_csrf),
+):
     aula = db.get(Aula, aula_id)
     if aula is None:
         raise HTTPException(status_code=404, detail="Aula não encontrada")
@@ -81,9 +102,14 @@ def gerar_pela_tela(request: Request, aula_id: int, db: Session = Depends(get_db
 def pagina_simulados(request: Request, db: Session = Depends(get_db)):
     simulados = db.query(Simulado).order_by(Simulado.criado_em.desc()).all()
     aulas = db.query(Aula).order_by(Aula.criada_em.desc()).all()
-    return templates.TemplateResponse(
-        request, "simulados.html", {"simulados": simulados, "aulas": aulas}
+    csrf_token = obter_csrf_token(request)
+    response = templates.TemplateResponse(
+        request,
+        "simulados.html",
+        {"simulados": simulados, "aulas": aulas, "csrf_token": csrf_token},
     )
+    anexar_csrf_cookie(response, csrf_token)
+    return response
 
 
 @router.get("/simulados/{simulado_id}")
@@ -106,6 +132,7 @@ def criar_simulado_pela_tela(
     # pede 500 questões e estoura tokens/custo no Gemini.
     quantidade: int = Form(default=10, ge=3, le=20),
     db: Session = Depends(get_db),
+    _csrf: None = Depends(validar_csrf),
 ):
     aula = db.get(Aula, aula_id)
     if aula is None:

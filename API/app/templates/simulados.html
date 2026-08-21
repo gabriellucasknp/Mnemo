@@ -18,6 +18,7 @@
     <h2 class="section-title">Criar novo simulado</h2>
     {% if aulas %}
     <form action="/simulados/criar" method="post" class="form-simulado">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="form-row">
         <label class="form-label">Aula base</label>
         <select name="aula_id" class="campo-select" required>

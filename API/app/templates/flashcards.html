@@ -48,6 +48,7 @@
     <div class="alerta">
       ⚠️ Os flashcards desta aula ainda não foram gerados (a transcrição está salva — nada foi perdido).
       <form action="/aulas/{{ aula.id }}/gerar" method="post" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button class="cta cta-mini" type="submit">Gerar flashcards agora</button>
       </form>
     </div>
