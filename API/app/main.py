@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import threading
 import time
 from contextlib import asynccontextmanager
 
@@ -33,11 +34,34 @@ logging.basicConfig(
 logger = logging.getLogger("mnemo")
 
 
+def _criar_tabelas_com_retry(intervalo_segundos: int = 15) -> None:
+    tentativa = 1
+    while True:
+        try:
+            Base.metadata.create_all(bind=engine)
+            logger.info("Banco de dados conectado e tabelas criadas")
+            return
+        except Exception:
+            logger.exception(
+                "Banco indisponível (tentativa %d) — nova tentativa em %ds. "
+                "Confira a env var DATABASE_URL e se o Postgres está no ar.",
+                tentativa,
+                intervalo_segundos,
+            )
+            tentativa += 1
+            time.sleep(intervalo_segundos)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Iniciando Mnemo v%s (debug=%s)", app.version, settings.debug)
-    Base.metadata.create_all(bind=engine)
-    logger.info("Banco de dados conectado e tabelas criadas")
+    # Em thread, de propósito: banco fora do ar não pode derrubar o boot —
+    # senão o container entra em crash-loop e TUDO vira 502 atrás do nginx.
+    # A API sobe degradada (/health/ready devolve 503 e segura o tráfego)
+    # e as tabelas são criadas assim que o Postgres responder.
+    threading.Thread(
+        target=_criar_tabelas_com_retry, daemon=True, name="db-bootstrap"
+    ).start()
     yield
     logger.info("Mnemo encerrando")
 
