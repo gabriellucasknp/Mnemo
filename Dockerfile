@@ -54,6 +54,16 @@ COPY deploy/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
     && mkdir -p /app/storage
 
-EXPOSE 8000
+# Container roda como não-root: o nginx precisa poder escrever config
+# renderizada, logs, temporários e pid — tudo chowned pro usuário mnemo.
+# A porta padrão vira 8080 (não-root não abre porta <1024).
+RUN useradd --create-home --uid 1000 mnemo \
+    && touch /run/nginx.pid \
+    && chown -R mnemo:mnemo /app/storage /etc/nginx /srv/web \
+        /var/lib/nginx /var/log/nginx /run/nginx.pid
+
+USER mnemo
+
+EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]

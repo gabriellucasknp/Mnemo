@@ -29,6 +29,13 @@ RUN python -m scripts.build_models
 
 # ----------------------------------------------------------------- dev ----
 FROM base AS dev
+
+# Mesmo princípio da prod: nada roda como root, nem em desenvolvimento.
+RUN useradd --create-home --uid 1000 mnemo \
+    && mkdir -p /app/storage \
+    && chown -R mnemo:mnemo /app
+USER mnemo
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ---------------------------------------------------------------- prod ----

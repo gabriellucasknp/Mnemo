@@ -5,7 +5,8 @@
 #   API_UPSTREAM  endereço da API pra fazer proxy (padrão: local, mesma imagem)
 set -e
 
-PORT="${PORT:-80}"
+# 8080 por padrão: o container roda como não-root e não pode abrir porta <1024.
+PORT="${PORT:-8080}"
 API_UPSTREAM="${API_UPSTREAM:-127.0.0.1:8000}"
 export PORT API_UPSTREAM
 
